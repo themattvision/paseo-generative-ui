@@ -82,6 +82,30 @@ Avanzamento da 0 a 100, con `label` facoltativa.
 {"type":"progress","label":"Avanzamento","value":68}
 ```
 
+## table
+
+Tabella con massimo 50 righe e 12 colonne. In compatto ogni riga diventa una card con etichetta e valore, quindi non nasconde mai lo scorrimento orizzontale.
+
+```json
+{"type":"table","columns":[{"key":"nome","label":"Nome"},{"key":"stato","label":"Stato","align":"end"}],"rows":[{"nome":"Spec","stato":"Pronta"}]}
+```
+
+## chart
+
+Grafico `bar` o `line`, con una o quattro serie e fino a 100 valori per serie. È disegnato con primitive View per funzionare senza SVG. Il primo tratto è in inchiostro con un micro accento giallo, gli altri sono neutri. Il donut non fa parte del catalogo perché senza SVG non resta pulito e coerente su tutte le piattaforme.
+
+```json
+{"type":"chart","kind":"bar","series":[{"label":"Uso","values":[12,18,9]}]}
+```
+
+## form e campi
+
+Un form contiene campi e un submit. I tipi disponibili sono `input` (`text`, `number`, `multiline`), `select`, `multiselect`, `switch`, `slider` e `radio`. I select e radio sono card selezionabili, non menu di sistema; i campi obbligatori mostrano il messaggio italiano sotto il campo. Il submit registra l'azione con `payload.values` e l'`agentId` della timeline.
+
+```json
+{"type":"form","id":"nuovo-task","children":[{"type":"input","name":"titolo","label":"Titolo","required":true},{"type":"select","name":"priorita","label":"Priorità","options":[{"label":"Normale","value":"normal"},{"label":"Alta","value":"high"}]},{"type":"slider","name":"durata","label":"Durata","min":5,"max":60,"step":5,"initialValue":30}],"submit":{"label":"Invia","action":{"id":"create-task"}}}
+```
+
 ## Note di rendering
 
-Il catalogo usa i token semantici del tema Paseo. Su iOS i contenitori usano `borderCurve: "continuous"`. Il runtime del plugin non espone `react-native-svg`, quindi sul web questa fase usa il fallback controllato con bordi continui e larghezza estesa; il percorso SVG `figma-squircle` verrà attivato solo quando il runtime lo includerà.
+Il catalogo usa i token semantici del tema Paseo. Su iOS i contenitori usano `borderCurve: "continuous"`; sul web `figma-squircle` calcola dopo il layout un percorso con smoothing 1 e lo applica con `clipPath: path(...)`. Il bordo è un layer separato e clippato, per evitare che venga tagliato dal clip.

@@ -33,6 +33,17 @@ const gallerySpec: SpecNode = {
       { title: "Azione agente", description: "Arriva nella fase successiva", status: "pending" },
       { title: "Controllo compatto", description: "Forza la variante mobile qui sopra", status: "attention" },
     ] },
+    { type: "table", columns: [{ key: "nome", label: "Nome" }, { key: "stato", label: "Stato", align: "end" }], rows: [{ nome: "Spec", stato: "Pronta" }, { nome: "Renderer", stato: "In corso" }] },
+    { type: "chart", kind: "bar", series: [{ label: "Settimana", values: [12, 18, 9, 24, 16] }, { label: "Obiettivo", values: [14, 14, 14, 14, 14] }] },
+    { type: "chart", kind: "line", series: [{ label: "Uso", values: [4, 9, 7, 15, 18] }] },
+    { type: "form", id: "demo-form", children: [
+      { type: "input", name: "titolo", label: "Titolo", placeholder: "Scrivi un titolo", required: true },
+      { type: "select", name: "priorita", label: "Priorità", required: true, options: [{ label: "Normale", value: "normal" }, { label: "Alta", value: "high" }] },
+      { type: "multiselect", name: "canali", label: "Canali", options: [{ label: "Web", value: "web" }, { label: "Mobile", value: "mobile" }] },
+      { type: "switch", name: "avviso", label: "Invia un avviso", initialValue: false },
+      { type: "slider", name: "durata", label: "Durata", min: 5, max: 60, step: 5, initialValue: 30 },
+      { type: "radio", name: "visibilita", label: "Visibilità", required: true, options: [{ label: "Privata", value: "private" }, { label: "Condivisa", value: "shared" }] },
+    ], submit: { label: "Invia dati", action: { id: "gallery-form" } } },
     { type: "button", label: "Azione secondaria", variant: "secondary", action: { id: "secondary-action" }, disabled: false },
   ],
 };

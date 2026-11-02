@@ -7,6 +7,8 @@ import { parseKnownNode, type Action, type KnownSpecNode, type SpecNode, validat
 import { Badge, Card, CheckGlyph, UiButton, UiText, type UiContext } from "./ds/components.js";
 import { Squircle } from "./ds/squircle.js";
 import { ink, matteoYellow, space } from "./ds/tokens.js";
+import { DataTable, Chart } from "./data-views.js";
+import { Form } from "./forms.js";
 
 export type GenerativeUiRendererProps = PluginTimelineItemProps<GenerativeUiData>;
 
@@ -58,6 +60,15 @@ function KnownNode({ node, context }: { node: KnownSpecNode; context: UiContext 
     case "button": return <UiButton {...node} context={context} />;
     case "divider": return <View accessibilityRole="none" style={{ height: 1, width: "100%", backgroundColor: context.theme.colors.border }} />;
     case "progress": return <Progress node={node} context={context} />;
+    case "table": return <DataTable node={node} context={context} />;
+    case "chart": return <Chart node={node} context={context} />;
+    case "form": return <Form node={node} context={context} />;
+    case "input":
+    case "select":
+    case "multiselect":
+    case "switch":
+    case "slider":
+    case "radio": return <SpecProblem message={`Il campo ${node.type} deve stare dentro un form.`} context={context} />;
   }
 }
 

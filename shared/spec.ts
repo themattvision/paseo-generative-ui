@@ -67,6 +67,16 @@ const progressSchema = z.object({
   value: z.number().min(0).max(100),
   label: z.string().optional(),
 });
+const tableSchema = z.object({ type: z.literal("table"), columns: z.array(z.object({ key: z.string().min(1), label: z.string().min(1), align: z.enum(["start", "center", "end"]).default("start") })).min(1).max(12), rows: z.array(z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))).max(50) });
+const chartSchema = z.object({ type: z.literal("chart"), kind: z.enum(["bar", "line"]), series: z.array(z.object({ label: z.string().min(1), values: z.array(z.number().finite()).min(1).max(100) })).min(1).max(4) });
+const inputSchema = z.object({ type: z.literal("input"), name: z.string().min(1), label: z.string().min(1), placeholder: z.string().optional(), kind: z.enum(["text", "number", "multiline"]).default("text"), required: z.boolean().default(false) });
+const optionsSchema = z.array(z.object({ label: z.string().min(1), value: z.string().min(1) })).min(1).max(20);
+const selectSchema = z.object({ type: z.literal("select"), name: z.string().min(1), label: z.string().min(1), options: optionsSchema, required: z.boolean().default(false) });
+const multiselectSchema = z.object({ type: z.literal("multiselect"), name: z.string().min(1), label: z.string().min(1), options: optionsSchema, required: z.boolean().default(false) });
+const switchSchema = z.object({ type: z.literal("switch"), name: z.string().min(1), label: z.string().min(1), initialValue: z.boolean().default(false) });
+const sliderSchema = z.object({ type: z.literal("slider"), name: z.string().min(1), label: z.string().min(1), min: z.number(), max: z.number(), step: z.number().positive(), initialValue: z.number() }).refine((value) => value.max > value.min && value.initialValue >= value.min && value.initialValue <= value.max, "Intervallo slider non valido");
+const radioSchema = z.object({ type: z.literal("radio"), name: z.string().min(1), label: z.string().min(1), options: optionsSchema, required: z.boolean().default(false) });
+const formSchema = z.object({ type: z.literal("form"), id: z.string().min(1), children: z.array(specNodeSchema).min(1), submit: z.object({ label: z.string().min(1), action: actionSchema }) });
 
 /** The extensible, discriminated catalog for every component implemented in phase 2. */
 export const knownSpecNodeSchema = z.discriminatedUnion("type", [
@@ -80,11 +90,20 @@ export const knownSpecNodeSchema = z.discriminatedUnion("type", [
   buttonSchema,
   dividerSchema,
   progressSchema,
+  tableSchema,
+  chartSchema,
+  formSchema,
+  inputSchema,
+  selectSchema,
+  multiselectSchema,
+  switchSchema,
+  sliderSchema,
+  radioSchema,
 ]);
 
 export type KnownSpecNode = z.infer<typeof knownSpecNodeSchema>;
 export type Action = z.infer<typeof actionSchema>;
-const supportedTypes = new Set(["stack", "text", "card", "stat", "callout", "list", "badge", "button", "divider", "progress"]);
+const supportedTypes = new Set(["stack", "text", "card", "stat", "callout", "list", "badge", "button", "divider", "progress", "table", "chart", "form", "input", "select", "multiselect", "switch", "slider", "radio"]);
 
 export type SpecValidation = { ok: true; nodeCount: number } | { ok: false; message: string };
 
