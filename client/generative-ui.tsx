@@ -1,9 +1,12 @@
 import type { PluginTimelineItemProps } from "@getpaseo/plugin/client";
-import { useMemo } from "react";
-import { Text, View } from "react-native";
-import { useToast } from "@getpaseo/plugin/client/ui";
+import { useEffect, useMemo, useState } from "react";
+import { Platform, Text, View } from "react-native";
+import { usePaseo } from "@getpaseo/plugin/client";
+import { DocumentFrame, useToast } from "@getpaseo/plugin/client/ui";
 import type { GenerativeUiData } from "../shared/generative-ui.js";
 import { parseKnownNode, type Action, type KnownSpecNode, type SpecNode, validateSpec } from "../shared/spec.js";
+import { actionMessage } from "../shared/action.js";
+import { documentHtml } from "../shared/html.js";
 import { Badge, Card, CheckGlyph, UiButton, UiText, type UiContext } from "./ds/components.js";
 import { Squircle } from "./ds/squircle.js";
 import { ink, matteoYellow, space } from "./ds/tokens.js";
@@ -14,15 +17,23 @@ export type GenerativeUiRendererProps = PluginTimelineItemProps<GenerativeUiData
 
 export function GenerativeUiItem({ item, theme, layout, agentId }: GenerativeUiRendererProps) {
   const toast = useToast();
+  const paseo = usePaseo();
   const context = useMemo<UiContext>(() => ({
     theme,
     compact: layout.compact,
     agentId,
-    onAction: (event) => {
-      console.log("[generative-ui] action", event);
-      toast.show("Azione registrata", { variant: "success" });
+    rowId: item.data.rowId ?? "riga-senza-id",
+    title: item.data.title,
+    onAction: async (event) => {
+      try {
+        await paseo.agents.ref(agentId).send(actionMessage(event, item.data.rowId ?? "riga-senza-id", item.data.title));
+        toast.show("Azione inviata all’agente", { variant: "success" });
+      } catch (error) {
+        toast.show("Invio non riuscito. Puoi riprovare.", { variant: "error" });
+        throw error;
+      }
     },
-  }), [agentId, layout.compact, theme, toast]);
+  }), [agentId, item.data.rowId, item.data.title, layout.compact, paseo, theme, toast]);
   return <GenerativeUiBlock title={item.data.title} spec={item.data.spec} context={context} />;
 }
 
@@ -62,6 +73,7 @@ function KnownNode({ node, context }: { node: KnownSpecNode; context: UiContext 
     case "progress": return <Progress node={node} context={context} />;
     case "table": return <DataTable node={node} context={context} />;
     case "chart": return <Chart node={node} context={context} />;
+    case "html": return <Html node={node} context={context} />;
     case "form": return <Form node={node} context={context} />;
     case "input":
     case "select":
@@ -70,6 +82,20 @@ function KnownNode({ node, context }: { node: KnownSpecNode; context: UiContext 
     case "slider":
     case "radio": return <SpecProblem message={`Il campo ${node.type} deve stare dentro un form.`} context={context} />;
   }
+}
+
+function Html({ node, context }: { node: Extract<KnownSpecNode, { type: "html" }>; context: UiContext }) {
+  const [url, setUrl] = useState<string>();
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const blob = new Blob([documentHtml(node.html, context.theme.colors.foreground, context.theme.colors.surface0)], { type: "text/html", lastModified: Date.now() });
+    const next = URL.createObjectURL(blob);
+    setUrl(next);
+    return () => URL.revokeObjectURL(next);
+  }, [context.theme.colors.foreground, context.theme.colors.surface0, node.html]);
+  if (Platform.OS !== "web") return <SpecProblem message="L’HTML libero è disponibile nel client web. Su mobile questo runtime non espone una scrittura file locale sicura." context={context} />;
+  if (!url) return <View style={{ height: node.height }} />;
+  return <View style={{ height: node.height, width: "100%", overflow: "hidden", borderRadius: 16 }}><DocumentFrame url={url} testID="generative-ui-html" /></View>;
 }
 
 function Stat({ node, context }: { node: Extract<KnownSpecNode, { type: "stat" }>; context: UiContext }) {

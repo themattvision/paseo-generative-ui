@@ -109,3 +109,8 @@ Un form contiene campi e un submit. I tipi disponibili sono `input` (`text`, `nu
 ## Note di rendering
 
 Il catalogo usa i token semantici del tema Paseo. Su iOS i contenitori usano `borderCurve: "continuous"`; sul web `figma-squircle` calcola dopo il layout un percorso con smoothing 1 e lo applica con `clipPath: path(...)`. Il bordo è un layer separato e clippato, per evitare che venga tagliato dal clip.
+# Azioni e HTML
+
+Ogni `button` e il submit di un `form` inviano all'agente un messaggio compatto: `[Azione UI] id=<azione> riga=<riga> titolo=<titolo> valori=<JSON>`. L'azione usa `once: true` per impostazione predefinita: dopo l'invio il controllo mostra `Inviato` e resta disabilitato. Con `once: false` può essere inviato di nuovo. Un aggiornamento della stessa riga dal bridge ricrea il controllo.
+
+`html` visualizza HTML o SVG statico isolato. Accetta `{ type: "html", html: "...", height?: 320 }`, con HTML fino a 48 KiB e altezza da 1 a 640, predefinita 320. Script, handler `on*`, URL `javascript:` e risorse remote vengono eliminati. Nel client web il contenuto è un `blob:` in `DocumentFrame`; nel client mobile viene mostrato un avviso, perché questo runtime non espone una scrittura locale sicura per ottenere il richiesto URL `file:`.

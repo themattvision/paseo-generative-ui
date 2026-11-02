@@ -7,6 +7,7 @@ const gapSchema = z.union([z.literal(4), z.literal(8), z.literal(12), z.literal(
 const actionSchema = z.object({
   id: z.string().min(1),
   payload: z.record(z.string(), z.unknown()).optional(),
+  once: z.boolean().default(true),
 });
 
 /** Preserves future component types for the renderer fallback. */
@@ -77,6 +78,7 @@ const switchSchema = z.object({ type: z.literal("switch"), name: z.string().min(
 const sliderSchema = z.object({ type: z.literal("slider"), name: z.string().min(1), label: z.string().min(1), min: z.number(), max: z.number(), step: z.number().positive(), initialValue: z.number() }).refine((value) => value.max > value.min && value.initialValue >= value.min && value.initialValue <= value.max, "Intervallo slider non valido");
 const radioSchema = z.object({ type: z.literal("radio"), name: z.string().min(1), label: z.string().min(1), options: optionsSchema, required: z.boolean().default(false) });
 const formSchema = z.object({ type: z.literal("form"), id: z.string().min(1), children: z.array(specNodeSchema).min(1), submit: z.object({ label: z.string().min(1), action: actionSchema }) });
+const htmlSchema = z.object({ type: z.literal("html"), html: z.string().max(48 * 1024), height: z.number().int().min(1).max(640).default(320) });
 
 /** The extensible, discriminated catalog for every component implemented in phase 2. */
 export const knownSpecNodeSchema = z.discriminatedUnion("type", [
@@ -99,11 +101,12 @@ export const knownSpecNodeSchema = z.discriminatedUnion("type", [
   switchSchema,
   sliderSchema,
   radioSchema,
+  htmlSchema,
 ]);
 
 export type KnownSpecNode = z.infer<typeof knownSpecNodeSchema>;
 export type Action = z.infer<typeof actionSchema>;
-const supportedTypes = new Set(["stack", "text", "card", "stat", "callout", "list", "badge", "button", "divider", "progress", "table", "chart", "form", "input", "select", "multiselect", "switch", "slider", "radio"]);
+const supportedTypes = new Set(["stack", "text", "card", "stat", "callout", "list", "badge", "button", "divider", "progress", "table", "chart", "form", "input", "select", "multiselect", "switch", "slider", "radio", "html"]);
 
 export type SpecValidation = { ok: true; nodeCount: number } | { ok: false; message: string };
 

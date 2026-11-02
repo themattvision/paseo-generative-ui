@@ -1,11 +1,11 @@
 import type { PluginTheme } from "@getpaseo/plugin";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import type { Action } from "../../shared/spec.js";
 import { ink, matteoYellow, space } from "./tokens.js";
 import { Squircle } from "./squircle.js";
 
-export type UiContext = { theme: PluginTheme; compact: boolean; agentId: string; onAction: (event: Action & { agentId: string }) => void };
+export type UiContext = { theme: PluginTheme; compact: boolean; agentId: string; rowId: string; title?: string; onAction: (event: Action & { agentId: string }) => Promise<void> };
 
 export function UiText({ children, variant = "body", context }: { children: string; variant?: "title" | "heading" | "body" | "caption" | "mono"; context: UiContext }) {
   const { theme, compact } = context;
@@ -43,21 +43,23 @@ export function Card({ title, tone = "default", children, context }: { title?: s
 
 export function UiButton({ label, variant, action, disabled, context }: { label: string; variant: "primary" | "secondary" | "ghost"; action: Action; disabled: boolean; context: UiContext }) {
   const { theme, compact, onAction } = context;
+  const [state, setState] = useState<"ready" | "sending" | "sent" | "error">("ready");
+  useEffect(() => setState("ready"), [action.id, action.payload, action.once, context.rowId]);
   const backgroundColor = variant === "primary" ? theme.colors.foreground : variant === "secondary" ? theme.colors.surface2 : "transparent";
   const borderColor = variant === "ghost" ? "transparent" : variant === "primary" ? theme.colors.foreground : theme.colors.border;
   const color = variant === "primary" ? theme.colors.surface0 : theme.colors.foreground;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      onPress={() => onAction({ ...action, agentId: context.agentId })}
-      style={({ pressed }) => ({ width: compact ? "100%" : undefined, opacity: disabled ? 0.42 : pressed ? 0.78 : 1 })}
+      accessibilityLabel={state === "sent" ? "Inviato" : state === "error" ? "Riprova invio" : label}
+      accessibilityState={{ disabled: disabled || state === "sending" || (action.once && state === "sent") }}
+      disabled={disabled || state === "sending" || (action.once && state === "sent")}
+      onPress={() => { setState("sending"); void onAction({ ...action, agentId: context.agentId }).then(() => setState("sent")).catch(() => setState("error")); }}
+      style={({ pressed }) => ({ width: compact ? "100%" : undefined, opacity: disabled || state === "sending" || (action.once && state === "sent") ? 0.42 : pressed ? 0.78 : 1 })}
     >
       <Squircle radius={18} style={{ backgroundColor, borderColor, borderWidth: variant === "ghost" ? 0 : 1 }}>
         <View style={{ minHeight: 44, paddingHorizontal: space[16], paddingVertical: compact ? space[8] : space[12], alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ color, fontSize: 14, fontWeight: "700", lineHeight: 18 }}>{label}</Text>
+          <Text style={{ color, fontSize: 14, fontWeight: "700", lineHeight: 18 }}>{state === "sending" ? "Invio…" : state === "sent" ? "Inviato" : state === "error" ? "Riprova" : label}</Text>
         </View>
       </Squircle>
     </Pressable>

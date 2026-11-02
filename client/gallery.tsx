@@ -56,7 +56,9 @@ export function UiGallery({ theme, layout }: PluginScreenProps) {
     theme,
     compact,
     agentId: "gallery",
-    onAction: (event) => { console.log("[generative-ui gallery] action", event); toast.show("Azione registrata", { variant: "success" }); },
+    rowId: "gallery",
+    title: "Galleria UI",
+    onAction: async (event) => { console.log("[generative-ui gallery] action", event); toast.show("Azione registrata", { variant: "success" }); },
   }), [compact, theme, toast]);
   return (
     <ScrollView contentContainerStyle={{ padding: compact ? space[12] : space[24], gap: compact ? space[12] : space[24] }}>

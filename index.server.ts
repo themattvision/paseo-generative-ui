@@ -5,6 +5,8 @@ import { join } from "node:path";
 import type { PluginHookContext, PluginServerContext } from "@getpaseo/plugin/server";
 import { mcpProgram } from "./server/mcp-program.js";
 import { generativeUiSchema, maxGenerativeUiDataBytes } from "./shared/generative-ui.js";
+import { sanitizeGenerativeUiData } from "./shared/html.js";
+import { readRows, removeRows, saveRow } from "./server/persistence.js";
 
 const bridgePort = 37621;
 
@@ -50,6 +52,11 @@ export default function contribute(server: PluginServerContext) {
   const token = randomBytes(32).toString("hex");
   let paseo: PluginHookContext["paseo"] | undefined;
   const agentTokens = new Map<string, string>();
+  async function append(agentId: string, id: string, data: ReturnType<typeof generativeUiSchema.parse>, persist: boolean) {
+    if (!paseo) throw new Error("Bridge Generative UI non ancora inizializzato.");
+    await paseo.agents.ref(agentId).timeline.append({ type: "plugin", id, kind: "generative-ui", version: 1, data });
+    if (persist) await saveRow(agentId, { id, data });
+  }
   const bridge = createServer(async (request, response) => {
     if (request.method !== "POST" || request.url !== "/append") {
       reply(response, 404, { error: "Risorsa non trovata." });
@@ -67,18 +74,12 @@ export default function contribute(server: PluginServerContext) {
       const agentId = agentTokens.get(agentToken);
       if (!agentId) throw new Error("Agente non disponibile per questo token.");
       if (id !== undefined && (typeof id !== "string" || !id)) throw new Error("id non valido.");
-      const parsed = generativeUiSchema.parse(data);
+      const rowId = typeof id === "string" ? id : `generative-ui-${randomBytes(8).toString("hex")}`;
+      const parsed = sanitizeGenerativeUiData({ ...generativeUiSchema.parse(data), rowId });
       if (Buffer.byteLength(JSON.stringify(parsed), "utf8") > maxGenerativeUiDataBytes) {
         throw new Error("I dati dell'interfaccia superano il limite di 64 KiB.");
       }
-      if (!paseo) throw new Error("Bridge Generative UI non ancora inizializzato.");
-      await paseo.agents.ref(agentId).timeline.append({
-        type: "plugin",
-        id: typeof id === "string" ? id : `generative-ui-${randomBytes(8).toString("hex")}`,
-        kind: "generative-ui",
-        version: 1,
-        data: parsed,
-      });
+      await append(agentId, rowId, parsed, true);
       reply(response, 200, { ok: true });
     } catch (error) {
       reply(response, 400, { error: error instanceof Error ? error.message : "Input non valido." });
@@ -112,14 +113,18 @@ export default function contribute(server: PluginServerContext) {
     },
     };
   });
-  const removeSessionHook = server.before("agent.session_open", ({ request }) => {
+  const removeSessionHook = server.before("agent.session_open", async ({ request }, context) => {
+    paseo = context.paseo;
     const agentToken = request.env.GENERATIVE_UI_AGENT_TOKEN;
     if (agentToken) agentTokens.set(agentToken, request.agentId);
+    for (const row of await readRows(request.agentId)) await append(request.agentId, row.id, row.data, false);
     return request;
   });
+  const removeArchiveHook = server.on("agent.archived", ({ agent }) => { void removeRows(agent.id); });
   return () => {
     removeHook();
     removeSessionHook();
+    removeArchiveHook();
     bridge.close();
   };
 }

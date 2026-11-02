@@ -21,9 +21,10 @@ export function Form({ node, context }: { node: Extract<KnownSpecNode, { type: "
       if ("required" in field && field.required && (value === "" || (Array.isArray(value) && value.length === 0))) next[field.name] = "Questo campo è obbligatorio.";
     }
     setErrors(next);
-    if (Object.keys(next).length === 0) context.onAction({ ...node.submit.action, payload: { ...node.submit.action.payload, values }, agentId: context.agentId });
+    if (Object.keys(next).length === 0) return context.onAction({ ...node.submit.action, payload: { ...node.submit.action.payload, values }, agentId: context.agentId });
+    return Promise.resolve();
   };
-  return <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} accessibilityLabel={node.id} style={{ gap: context.compact ? space[12] : space[16], width: "100%" }}>{fields.map((field) => <FieldView key={field.name} field={field} value={values[field.name]} error={errors[field.name]} set={set} context={context} />)}<UiButton label={node.submit.label} variant="primary" disabled={false} action={{ id: node.submit.action.id, payload: node.submit.action.payload }} context={{ ...context, onAction: submit as never }} /></KeyboardAvoidingView>;
+  return <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} accessibilityLabel={node.id} style={{ gap: context.compact ? space[12] : space[16], width: "100%" }}>{fields.map((field) => <FieldView key={field.name} field={field} value={values[field.name]} error={errors[field.name]} set={set} context={context} />)}<UiButton label={node.submit.label} variant="primary" disabled={false} action={node.submit.action} context={{ ...context, onAction: submit }} /></KeyboardAvoidingView>;
 }
 
 function FieldView({ field, value, error, set, context }: { field: Field; value: Values[string]; error?: string; set: (name: string, value: Values[string]) => void; context: UiContext }) {
