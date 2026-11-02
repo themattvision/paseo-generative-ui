@@ -1,1 +1,25 @@
 node_modules/
+
+# Sistema e editor
+.DS_Store
+**/.DS_Store
+*.swp
+*.tmp
+*.log
+
+# Build e output
+dist/
+build/
+out/
+.next/
+.vite/
+.cache/
+coverage/
+*.tsbuildinfo
+
+# Segreti e ambiente locale
+.env
+.env.*
+!.env.example
+*.pem
+*.key
