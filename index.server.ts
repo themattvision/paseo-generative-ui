@@ -1,10 +1,20 @@
 import { randomBytes } from "node:crypto";
+import { existsSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { join } from "node:path";
 import type { PluginHookContext, PluginServerContext } from "@getpaseo/plugin/server";
+import { mcpProgram } from "./server/mcp-program.js";
 import { generativeUiSchema, maxGenerativeUiDataBytes } from "./shared/generative-ui.js";
 
-const bridgePath = "/Users/matteozampieri/ProgettiApp/paseo-generative-ui/server/mcp-bridge.mjs";
 const bridgePort = 37621;
+
+function resolveNodeCommand(): string {
+  for (const directory of (process.env.PATH ?? "").split(":")) {
+    const candidate = join(directory, "node");
+    if (existsSync(candidate)) return candidate;
+  }
+  return "node";
+}
 
 function readJson(request: IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
@@ -36,8 +46,10 @@ function reply(response: ServerResponse, status: number, body: Record<string, un
 }
 
 export default function contribute(server: PluginServerContext) {
+  const nodeCommand = resolveNodeCommand();
   const token = randomBytes(32).toString("hex");
   let paseo: PluginHookContext["paseo"] | undefined;
+  const agentTokens = new Map<string, string>();
   const bridge = createServer(async (request, response) => {
     if (request.method !== "POST" || request.url !== "/append") {
       reply(response, 404, { error: "Risorsa non trovata." });
@@ -50,8 +62,10 @@ export default function contribute(server: PluginServerContext) {
     try {
       const input = await readJson(request);
       if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Input non valido.");
-      const { agentId, id, ...data } = input as Record<string, unknown>;
-      if (typeof agentId !== "string" || !agentId) throw new Error("agentId mancante.");
+      const { agentToken, id, ...data } = input as Record<string, unknown>;
+      if (typeof agentToken !== "string") throw new Error("Token agente mancante.");
+      const agentId = agentTokens.get(agentToken);
+      if (!agentId) throw new Error("Agente non disponibile per questo token.");
       if (id !== undefined && (typeof id !== "string" || !id)) throw new Error("id non valido.");
       const parsed = generativeUiSchema.parse(data);
       if (Buffer.byteLength(JSON.stringify(parsed), "utf8") > maxGenerativeUiDataBytes) {
@@ -75,25 +89,37 @@ export default function contribute(server: PluginServerContext) {
   const bridgeUrl = `http://127.0.0.1:${bridgePort}/append`;
   const removeHook = server.before("agent.create", ({ request }, context) => {
     paseo = context.paseo;
+    const agentToken = randomBytes(32).toString("hex");
     return {
     ...request,
+    env: { ...request.env, GENERATIVE_UI_AGENT_TOKEN: agentToken },
     config: {
       ...request.config,
       mcpServers: {
         ...request.config.mcpServers,
         "generative-ui": {
           type: "stdio",
-          command: process.execPath,
-          args: [bridgePath],
-          env: { GENERATIVE_UI_BRIDGE_URL: bridgeUrl, GENERATIVE_UI_BRIDGE_TOKEN: token },
+          command: nodeCommand,
+          args: ["--input-type=commonjs", "--eval", mcpProgram],
+          env: {
+            GENERATIVE_UI_BRIDGE_URL: bridgeUrl,
+            GENERATIVE_UI_BRIDGE_TOKEN: token,
+            GENERATIVE_UI_AGENT_TOKEN: agentToken,
+          },
           alwaysLoad: true,
         },
       },
     },
     };
   });
+  const removeSessionHook = server.before("agent.session_open", ({ request }) => {
+    const agentToken = request.env.GENERATIVE_UI_AGENT_TOKEN;
+    if (agentToken) agentTokens.set(agentToken, request.agentId);
+    return request;
+  });
   return () => {
     removeHook();
+    removeSessionHook();
     bridge.close();
   };
 }
