@@ -1,9 +1,9 @@
 import type { PluginClientContext } from "@getpaseo/plugin/client";
-import { SidebarRow } from "@getpaseo/plugin/client/ui";
-import { UiGallery } from "./client/gallery.js";
 import { GenerativeUiItem } from "./client/generative-ui.js";
 import { generativeUiSchema } from "./shared/generative-ui.js";
 
+// Solo il rendering inline nella timeline: la Galleria UI e la sua voce in sidebar sono state tolte
+// il 3 novembre 2026 (client/gallery.tsx resta nel repo come banco di prova, non è registrato).
 export default function contribute(client: PluginClientContext) {
   const removeRenderer = client.addTimelineRenderer({
     kind: "generative-ui",
@@ -11,11 +11,5 @@ export default function contribute(client: PluginClientContext) {
     schema: generativeUiSchema,
     Component: GenerativeUiItem,
   });
-  const removeScreen = client.addScreen({ id: "ui-gallery", title: "Galleria UI", Component: UiGallery });
-  const removeSidebar = client.addSidebarHeaderItem({
-    id: "ui-gallery",
-    title: "Galleria UI",
-    Component: ({ currentScreen, openScreen }) => <SidebarRow icon="PanelsTopLeft" active={currentScreen?.screenId === "ui-gallery"} onPress={() => openScreen({ screenId: "ui-gallery" })} />,
-  });
-  return () => { removeSidebar(); removeScreen(); removeRenderer(); };
+  return () => { removeRenderer(); };
 }

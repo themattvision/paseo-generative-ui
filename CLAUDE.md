@@ -6,7 +6,7 @@ Plugin Paseo che porta in ogni chat l'equivalente di "Intelligent UI" di ChatGPT
 
 - `index.server.ts`: hook `agent.create` inietta un server MCP stdio inline (`node --eval`) con `show_ui`; bridge HTTP loopback con token per agente che fa `timeline.append` (kind `generative-ui` v1); persistenza in `~/.paseo/plugin-data/generative-ui/<agent>.json` (max 200 righe per agente).
 - `shared/`: schema Zod della spec, azioni, sanificazione HTML.
-- `client/`: renderer della timeline, design system in `client/ds/`, galleria UI (schermata del plugin con interruttore "Forza compatto").
+- `client/`: renderer della timeline, design system in `client/ds/`, galleria UI (`client/gallery.tsx`, schermata con interruttore "Forza compatto"): dal 3 novembre 2026 NON è più registrata né ha la voce in sidebar (Matteo non la vuole, i blocchi compaiono in linea nelle risposte); il file resta come banco di prova, per riattivarla servono `addScreen` e `addSidebarHeaderItem` in `index.client.tsx`.
 - Azioni utente: `usePaseo().agents.ref(agentId).send("[Azione UI] ...")`.
 
 ## Trappole
