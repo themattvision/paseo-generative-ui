@@ -25,6 +25,7 @@ Il testo OpenUI non supera 20000 caratteri; il campo spec resta disponibile per 
 ## Component Signatures
 
 Arguments marked with ? are optional. Sub-components can be inline or referenced; prefer references for better streaming.
+Props marked `$binding<type>` accept a `$variable` reference for two-way binding.
 
 Col(children: any[], gap?: number, align?: "start" | "center" | "end" | "stretch") — Colonna verticale. Senza gap spazia i blocchi come un articolo.
 Row(children: any[], gap?: number, align?: "start" | "center" | "end" | "stretch", justify?: "start" | "center" | "end" | "between", wrap?: boolean) — Riga orizzontale; gli elementi sono centrati verticalmente.
@@ -36,6 +37,22 @@ Badge(text: string, color?: "neutral" | "info" | "success" | "warning" | "danger
 Button(label: string, action?: any, variant?: "solid" | "outline" | "soft" | "ghost", color?: "primary" | "danger" | "success", size?: "sm" | "md" | "lg", icon?: string, disabled?: boolean, block?: boolean) — Bottone. L'azione può essere @ToAssistant, @OpenUrl, @Set, @Reset o @CopyToClipboard.
 Table(columns: string[], rows: any[][]) — Tabella. Ogni riga elenca le celle nell'ordine delle colonne.
 Chart(type: "bar" | "line" | "area" | "pie" | "donut" | "scatter", data: Record<string, string | number>[], x?: string, series?: string[], format?: "number" | "currency" | "percent", currency?: string, stacked?: boolean, height?: number) — Grafico su righe di dati. Nel plugin sono disegnati bar e line.
+Divider() — Linea orizzontale sottile di separazione.
+Spacer() — Riempie lo spazio libero in una Row.
+Grid(children: any[], columns?: number, minChildWidth?: number, gap?: number) — Griglia a colonne uguali (default 2). Con minChildWidth le colonne scendono su schermi stretti.
+List(items: any[], marker?: "bullet" | "number" | "none", timeline?: boolean) — Elenco puntato o numerato. Con timeline le voci sono unite da una linea. Le voci sono stringhe o ListItem.
+ListItem(title: string, description?: string, marker?: string, children?: any[]) — Voce di elenco con titolo, descrizione facoltativa e marker (per esempio un orario).
+Image(src: string, alt: string, aspectRatio?: number, radius?: string | number, fit?: "cover" | "contain") — Foto da un URL http(s). aspectRatio è larghezza su altezza, per esempio 1.5.
+Link(text: string, url: string) — Link cliccabile che apre un URL http(s).
+Quote(text: string, cite?: string) — Citazione con filetto laterale. cite indica la fonte.
+Code(code: string, language?: string) — Blocco di codice in monospazio, con scorrimento orizzontale.
+Label(text: string) — Etichetta di campo o di gruppo.
+Input(value: $binding<string | number>, label?: string, type?: "text" | "number", placeholder?: string) — Campo di testo o numero. value è una variabile $ che altri elementi leggono; un numero salva numeri.
+TextArea(value: $binding<string>, label?: string, placeholder?: string, rows?: number) — Area di testo su più righe collegata a una variabile $.
+Select(value: $binding<string>, options: any[], label?: string, placeholder?: string) — Menu a tendina per liste di opzioni lunghe. Le opzioni sono stringhe o {value, label}.
+SegmentedControl(value: $binding<string>, options: any[], block?: boolean) — Due o quattro scelte brevi affiancate. Le opzioni sono stringhe o {value, label}.
+Slider(value: $binding<number>, min: number, max: number, step?: number, label?: string, unit?: string, marks?: {value: number, label: string}[]) — Valore numerico tra min e max, con etichetta e unità (% o $). Si regola con i passi −/+.
+Checkbox(checked: $binding<boolean>, label: string, lineThrough?: boolean) — Casella di spunta collegata a una variabile $ booleana. lineThrough barra l'etichetta quando è spuntata.
 
 ## Hoisting & Streaming (CRITICAL)
 
