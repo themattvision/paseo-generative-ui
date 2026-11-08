@@ -28,6 +28,8 @@
     "zod": "^4.4.3"
   },
   "dependencies": {
+    "@openuidev/lang-core": "1.1.0",
+    "@openuidev/react-lang": "1.1.0",
     "figma-squircle": "^1.1.0"
   }
 }

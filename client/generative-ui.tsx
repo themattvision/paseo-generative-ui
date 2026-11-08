@@ -1,9 +1,11 @@
 import type { PluginTimelineItemProps } from "@getpaseo/plugin/client";
 import { useEffect, useMemo, useState } from "react";
-import { Platform, Text, View } from "react-native";
+import { Linking, Platform, Text, View } from "react-native";
 import { usePaseo } from "@getpaseo/plugin/client";
 import { DocumentFrame, useToast } from "@getpaseo/plugin/client/ui";
+import { Renderer } from "@openuidev/react-lang";
 import type { GenerativeUiData } from "../shared/generative-ui.js";
+import { OpenUiContext, openUiLibrary } from "./openui/library.js";
 import { parseKnownNode, type Action, type KnownSpecNode, type SpecNode, validateSpec } from "../shared/spec.js";
 import { actionMessage } from "../shared/action.js";
 import { documentHtml } from "../shared/html.js";
@@ -34,7 +36,38 @@ export function GenerativeUiItem({ item, theme, layout, agentId }: GenerativeUiR
       }
     },
   }), [agentId, item.data.rowId, item.data.title, layout.compact, paseo, theme, toast]);
+  if (item.data.openui !== undefined) return <OpenUiBlock title={item.data.title} openui={item.data.openui} context={context} />;
+  if (item.data.spec === undefined) return null;
   return <GenerativeUiBlock title={item.data.title} spec={item.data.spec} context={context} />;
+}
+
+// Blocco OpenUI Lang: stesso involucro del formato classico, contenuto dalla libreria client/openui/library.tsx.
+function OpenUiBlock({ title, openui, context }: { title?: string; openui: string; context: UiContext }) {
+  const padding = context.compact ? space[12] : space[24];
+  return (
+    <Squircle radius={28} style={{ backgroundColor: context.theme.colors.surface0, borderColor: context.theme.colors.border, borderWidth: 1 }}>
+      <View style={{ padding, gap: context.compact ? space[8] : space[16] }}>
+        {title ? <UiText variant="heading" context={context}>{title}</UiText> : null}
+        <OpenUiContext.Provider value={context}>
+          <Renderer
+            response={openui}
+            library={openUiLibrary}
+            onAction={(event) => {
+              // Stesso canale delle azioni classiche: il messaggio torna all'agente nella stessa chat.
+              if (event.type === "open_url") {
+                // Link esterno: apertura diretta, nessun messaggio all'agente. Da verificare il modo usato altrove nel plugin.
+                void Linking.openURL(String(event.params.url ?? ""));
+                return;
+              }
+              if (event.type === "continue_conversation") {
+                void context.onAction({ id: "openui", once: true, agentId: context.agentId, payload:{ messaggio: event.humanFriendlyMessage, valori: event.formState ?? {} } });
+              }
+            }}
+          />
+        </OpenUiContext.Provider>
+      </View>
+    </Squircle>
+  );
 }
 
 export function GenerativeUiBlock({ title, spec, context }: { title?: string; spec: SpecNode; context: UiContext }) {
