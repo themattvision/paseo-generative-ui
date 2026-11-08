@@ -52,6 +52,13 @@ export default function contribute(server: PluginServerContext) {
   const token = randomBytes(32).toString("hex");
   let paseo: PluginHookContext["paseo"] | undefined;
   const agentTokens = new Map<string, string>();
+  const pendingRows = new Map<string, Map<string, ReturnType<typeof generativeUiSchema.parse>>>();
+  async function flushPending(agentId: string) {
+    const queue = pendingRows.get(agentId);
+    if (!queue || queue.size === 0) return;
+    pendingRows.delete(agentId);
+    for (const [rowId, data] of queue) await append(agentId, rowId, data, true);
+  }
   async function append(agentId: string, id: string, data: ReturnType<typeof generativeUiSchema.parse>, persist: boolean) {
     if (!paseo) throw new Error("Bridge Generative UI non ancora inizializzato.");
     await paseo.agents.ref(agentId).timeline.append({ type: "plugin", id, kind: "generative-ui", version: 1, data });
@@ -79,7 +86,13 @@ export default function contribute(server: PluginServerContext) {
       if (Buffer.byteLength(JSON.stringify(parsed), "utf8") > maxGenerativeUiDataBytes) {
         throw new Error("I dati dell'interfaccia superano il limite di 64 KiB.");
       }
-      await append(agentId, rowId, parsed, true);
+      // Il blocco NON si aggiunge subito: una riga inserita fra le chiamate agli strumenti finisce nel
+      // gruppo di lavoro che il telefono tiene chiuso. Si accoda e si aggiunge a fine turno (agent.turn_ended),
+      // cioè dopo la risposta finale. Con lo stesso id l'ultima versione sostituisce la precedente.
+      const queue = pendingRows.get(agentId) ?? new Map<string, ReturnType<typeof generativeUiSchema.parse>>();
+      queue.delete(rowId);
+      queue.set(rowId, parsed);
+      pendingRows.set(agentId, queue);
       reply(response, 200, { ok: true });
     } catch (error) {
       reply(response, 400, { error: error instanceof Error ? error.message : "Input non valido." });
@@ -120,8 +133,13 @@ export default function contribute(server: PluginServerContext) {
     for (const row of await readRows(request.agentId)) await append(request.agentId, row.id, row.data, false);
     return request;
   });
-  const removeArchiveHook = server.on("agent.archived", ({ agent }) => { void removeRows(agent.id); });
+  const removeArchiveHook = server.on("agent.archived", ({ agent }) => { pendingRows.delete(agent.id); void removeRows(agent.id); });
+  const removeTurnEndHook = server.on("agent.turn_ended", async ({ agent }, context) => {
+    paseo = context.paseo;
+    await flushPending(agent.id);
+  });
   return () => {
+    removeTurnEndHook();
     removeHook();
     removeSessionHook();
     removeArchiveHook();

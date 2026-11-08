@@ -14,7 +14,7 @@ Non usarlo per risposte brevi, spiegazioni discorsive o quando il testo basta. D
 
 ## Come chiamarlo
 
-`show_ui({ title?, spec, id? })`. `spec` è un solo nodo JSON del catalogo (vedi `catalogo.md`): limiti 8 livelli, 200 nodi, 64 KiB. Con lo stesso `id` aggiorni il blocco invece di crearne uno nuovo (utile per avanzamenti).
+`show_ui({ title?, spec, id? })`. `spec` è un solo nodo JSON del catalogo (vedi `catalogo.md`): limiti 8 livelli, 200 nodi, 64 KiB. Con lo stesso `id` aggiorni il blocco invece di crearne uno nuovo (utile per avanzamenti). Dal 6 novembre 2026 il blocco non compare subito: il plugin lo accoda e lo aggiunge a fine turno, dopo la tua risposta finale, così sul telefono non resta nascosto nel gruppo degli strumenti. Quindi la risposta finale deve essere una riga di raccordo ("ecco il riepilogo qui sotto"), non descrivere il contenuto del blocco.
 
 ## Risposte dell'utente
 
