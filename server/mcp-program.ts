@@ -1,3 +1,9 @@
+import { OPENUI_PROMPT } from "../shared/openui-prompt.generated.js";
+
+// Il programma MCP gira come script inline (node --eval) e non può importare moduli: la descrizione
+// con il prompt OpenUI viene costruita qui, nel modulo server, e inserita come stringa JSON.
+const showUiDescription = `Inserisce o aggiorna un blocco di interfaccia nella timeline della chat.\n\n${OPENUI_PROMPT}`;
+
 export const mcpProgram = String.raw`
 const maxBytes = 64 * 1024;
 const bridgeUrl = process.env.GENERATIVE_UI_BRIDGE_URL;
@@ -6,7 +12,7 @@ const agentToken = process.env.GENERATIVE_UI_AGENT_TOKEN;
 const send = (message) => process.stdout.write(JSON.stringify(message) + "\n");
 const tool = {
   name: "show_ui",
-  description: "Inserisce o aggiorna un blocco di interfaccia nella timeline della chat.",
+  description: ${JSON.stringify(showUiDescription)},
   inputSchema: {
     type: "object",
     properties: {
