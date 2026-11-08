@@ -1,0 +1,11 @@
+{
+  "name": "react-dom",
+  "version": "19.1.0",
+  "description": "Stub locale di react-dom per il bundle del plugin: il renderer web non serve in Paseo (React Native).",
+  "private": true,
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js"
+  }
+}
