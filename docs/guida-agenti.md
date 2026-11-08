@@ -14,7 +14,7 @@ Non usarlo per risposte brevi, spiegazioni discorsive o quando il testo basta. D
 
 ## Come chiamarlo
 
-`show_ui({ title?, spec, id? })`. `spec` è un solo nodo JSON del catalogo (vedi `catalogo.md`): limiti 8 livelli, 200 nodi, 64 KiB. Con lo stesso `id` aggiorni il blocco invece di crearne uno nuovo (utile per avanzamenti). Dal 6 novembre 2026 il blocco non compare subito: il plugin lo accoda e lo aggiunge a fine turno, dopo la tua risposta finale, così sul telefono non resta nascosto nel gruppo degli strumenti. Quindi la risposta finale deve essere una riga di raccordo ("ecco il riepilogo qui sotto"), non descrivere il contenuto del blocco.
+PREFERISCI `show_ui({ title?, openui, id? })` (dal 9 novembre 2026): `openui` è testo OpenUI Lang, il linguaggio di thesysdev, con root = Col(...) e i componenti elencati nella descrizione dello strumento (lista completa e sintassi in `openui-prompt.md`, generata dal codice). Il validatore risponde con la riga sbagliata in italiano: correggi e riprova. Il vecchio `show_ui({ title?, spec, id? })` resta valido per i blocchi già esistenti e per l'`html`. `spec` è un solo nodo JSON del catalogo (vedi `catalogo.md`): limiti 8 livelli, 200 nodi, 64 KiB. Con lo stesso `id` aggiorni il blocco invece di crearne uno nuovo (utile per avanzamenti). Dal 6 novembre 2026 il blocco non compare subito: il plugin lo accoda e lo aggiunge a fine turno, dopo la tua risposta finale, così sul telefono non resta nascosto nel gruppo degli strumenti. Quindi la risposta finale deve essere una riga di raccordo ("ecco il riepilogo qui sotto"), non descrivere il contenuto del blocco.
 
 ## Risposte dell'utente
 
