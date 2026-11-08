@@ -15,7 +15,9 @@
     "shared/"
   ],
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx tests/spec.test.ts && tsx tests/openui.test.ts",
+    "prompt": "tsx scripts/generate-openui-prompt.ts"
   },
   "devDependencies": {
     "@getpaseo/plugin": "0.13.0",
@@ -24,10 +26,13 @@
     "@types/react": "~19.2.0",
     "react": "19.1.0",
     "react-native": "0.81.5",
+    "tsx": "4.23.15",
     "typescript": "^5.9.3",
     "zod": "^4.4.3"
   },
   "dependencies": {
+    "@openuidev/lang-core": "1.1.0",
+    "@openuidev/react-lang": "1.1.0",
     "figma-squircle": "^1.1.0"
   }
 }

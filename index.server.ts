@@ -82,7 +82,10 @@ export default function contribute(server: PluginServerContext) {
       if (!agentId) throw new Error("Agente non disponibile per questo token.");
       if (id !== undefined && (typeof id !== "string" || !id)) throw new Error("id non valido.");
       const rowId = typeof id === "string" ? id : `generative-ui-${randomBytes(8).toString("hex")}`;
-      const parsed = sanitizeGenerativeUiData({ ...generativeUiSchema.parse(data), rowId });
+      // Errore leggibile per l'agente (es. riga e riferimento OpenUI non risolti), non il JSON grezzo di Zod.
+      const checked = generativeUiSchema.safeParse(data);
+      if (!checked.success) throw new Error(checked.error.issues[0]?.message ?? "Dati dell'interfaccia non validi.");
+      const parsed = sanitizeGenerativeUiData({ ...checked.data, rowId });
       if (Buffer.byteLength(JSON.stringify(parsed), "utf8") > maxGenerativeUiDataBytes) {
         throw new Error("I dati dell'interfaccia superano il limite di 64 KiB.");
       }
