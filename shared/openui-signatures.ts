@@ -2,11 +2,17 @@
 // (validazione con lang-core) sia al client (libreria React Native in client/openui/library.tsx).
 // Nomi e ordine degli argomenti seguono il system prompt upstream di thesysdev (open-intelligent-ui).
 // Ordine delle chiavi di z.object = ordine degli argomenti posizionali: non cambiarlo.
+// Le prop $binding usano bindable(): il runtime di react-lang le passa come campo reattivo (value e setValue).
 import { z } from "zod";
-import { createLibrary, createParser, defineComponent } from "@openuidev/lang-core";
+import { createLibrary, createParser, defineComponent, markReactive } from "@openuidev/lang-core";
 
 const node = z.array(z.any());
 const colorName = z.string();
+
+function bindable<T extends z.ZodType>(schema: T): T {
+  markReactive(schema);
+  return schema;
+}
 
 export const openUiComponentDefs: { name: string; description: string; props: z.ZodObject<z.ZodRawShape> }[] = [
   {
@@ -109,6 +115,137 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
       currency: z.string().optional(),
       stacked: z.boolean().optional(),
       height: z.number().optional(),
+    }),
+  },
+  {
+    name: "Divider",
+    description: "Linea orizzontale sottile di separazione.",
+    props: z.object({}),
+  },
+  {
+    name: "Spacer",
+    description: "Riempie lo spazio libero in una Row.",
+    props: z.object({}),
+  },
+  {
+    name: "Grid",
+    description: "Griglia a colonne uguali (default 2). Con minChildWidth le colonne scendono su schermi stretti.",
+    props: z.object({
+      children: node,
+      columns: z.number().optional(),
+      minChildWidth: z.number().optional(),
+      gap: z.number().optional(),
+    }),
+  },
+  {
+    name: "List",
+    description: "Elenco puntato o numerato. Con timeline le voci sono unite da una linea. Le voci sono stringhe o ListItem.",
+    props: z.object({
+      items: z.array(z.any()),
+      marker: z.enum(["bullet", "number", "none"]).optional(),
+      timeline: z.boolean().optional(),
+    }),
+  },
+  {
+    name: "ListItem",
+    description: "Voce di elenco con titolo, descrizione facoltativa e marker (per esempio un orario).",
+    props: z.object({
+      title: z.string(),
+      description: z.string().optional(),
+      marker: z.string().optional(),
+      children: node.optional(),
+    }),
+  },
+  {
+    name: "Image",
+    description: "Foto da un URL http(s). aspectRatio è larghezza su altezza, per esempio 1.5.",
+    props: z.object({
+      src: z.string(),
+      alt: z.string(),
+      aspectRatio: z.number().optional(),
+      radius: z.union([z.string(), z.number()]).optional(),
+      fit: z.enum(["cover", "contain"]).optional(),
+    }),
+  },
+  {
+    name: "Link",
+    description: "Link cliccabile che apre un URL http(s).",
+    props: z.object({ text: z.string(), url: z.string() }),
+  },
+  {
+    name: "Quote",
+    description: "Citazione con filetto laterale. cite indica la fonte.",
+    props: z.object({ text: z.string(), cite: z.string().optional() }),
+  },
+  {
+    name: "Code",
+    description: "Blocco di codice in monospazio, con scorrimento orizzontale.",
+    props: z.object({ code: z.string(), language: z.string().optional() }),
+  },
+  {
+    name: "Label",
+    description: "Etichetta di campo o di gruppo.",
+    props: z.object({ text: z.string() }),
+  },
+  {
+    name: "Input",
+    description: "Campo di testo o numero. value è una variabile $ che altri elementi leggono; un numero salva numeri.",
+    props: z.object({
+      value: bindable(z.union([z.string(), z.number()])),
+      label: z.string().optional(),
+      type: z.enum(["text", "number"]).optional(),
+      placeholder: z.string().optional(),
+    }),
+  },
+  {
+    name: "TextArea",
+    description: "Area di testo su più righe collegata a una variabile $.",
+    props: z.object({
+      value: bindable(z.string()),
+      label: z.string().optional(),
+      placeholder: z.string().optional(),
+      rows: z.number().optional(),
+    }),
+  },
+  {
+    name: "Select",
+    description: "Menu a tendina per liste di opzioni lunghe. Le opzioni sono stringhe o {value, label}.",
+    props: z.object({
+      value: bindable(z.string()),
+      options: z.array(z.any()),
+      label: z.string().optional(),
+      placeholder: z.string().optional(),
+    }),
+  },
+  {
+    name: "SegmentedControl",
+    description: "Due o quattro scelte brevi affiancate. Le opzioni sono stringhe o {value, label}.",
+    props: z.object({
+      value: bindable(z.string()),
+      options: z.array(z.any()),
+      block: z.boolean().optional(),
+    }),
+  },
+  {
+    name: "Slider",
+    description: "Valore numerico tra min e max, con etichetta e unità (% o $). Si regola con i passi −/+.",
+    props: z.object({
+      value: bindable(z.number()),
+      min: z.number(),
+      max: z.number(),
+      step: z.number().optional(),
+      label: z.string().optional(),
+      unit: z.string().optional(),
+      marks: z.array(z.object({ value: z.number(), label: z.string() })).optional(),
+    }),
+  },
+  {
+    name: "Checkbox",
+    description: "Casella di spunta collegata a una variabile $ booleana. lineThrough barra l'etichetta quando è spuntata.",
+    props: z.object({
+      checked: bindable(z.boolean()),
+      label: z.string(),
+      lineThrough: z.boolean().optional(),
     }),
   },
 ];

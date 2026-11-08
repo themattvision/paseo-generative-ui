@@ -1,21 +1,13 @@
-import { createContext, useContext, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
-import { createLibrary, defineComponent, useTriggerAction, type ComponentRenderProps } from "@openuidev/react-lang";
+import { createLibrary, defineComponent, useTriggerAction } from "@openuidev/react-lang";
 import { openUiComponentDefs } from "../../shared/openui-signatures.js";
-import type { UiContext } from "../ds/components.js";
+import { Squircle } from "../ds/squircle.js";
 import { space, matteoYellow } from "../ds/tokens.js";
+import { OpenUiContext, useUi, type Renderer } from "./base.js";
+import { contentRenderers } from "./content.js";
+import { controlRenderers } from "./controls.js";
 
-// Contesto del blocco (tema, compatto, invio azioni): i componenti React Native lo leggono qui.
-export const OpenUiContext = createContext<UiContext | null>(null);
-
-function useUi(): UiContext {
-  const context = useContext(OpenUiContext);
-  if (!context) throw new Error("OpenUiContext mancante.");
-  return context;
-}
-
-type Props = ComponentRenderProps<Record<string, any>>;
-type Renderer = (props: Props) => ReactNode;
+export { OpenUiContext };
 
 const alignMap = { start: "flex-start", center: "center", end: "flex-end", stretch: "stretch" } as const;
 const gapOf = (value: number | undefined, fallback: number) => (value ?? fallback) as number;
@@ -39,9 +31,11 @@ const Card: Renderer = ({ props, renderNode }) => {
   const context = useUi();
   const soft = props.variant === "soft";
   return (
-    <View style={{ width: "100%", padding: gapOf(props.padding, context.compact ? space[12] : space[16]), gap: gapOf(props.gap, space[8]), borderRadius: 20, borderWidth: soft ? 0 : 1, borderColor: context.theme.colors.border, backgroundColor: soft ? context.theme.colors.surface1 : context.theme.colors.surface0 }}>
-      {renderNode(props.children)}
-    </View>
+    <Squircle radius={24} style={{ backgroundColor: soft ? context.theme.colors.surface1 : context.theme.colors.surface0, borderColor: context.theme.colors.border, borderWidth: soft ? 0 : 1 }}>
+      <View style={{ padding: gapOf(props.padding, context.compact ? space[12] : space[16]), gap: gapOf(props.gap, space[8]) }}>
+        {renderNode(props.children)}
+      </View>
+    </Squircle>
   );
 };
 
@@ -86,11 +80,14 @@ const Button: Renderer = ({ props }) => {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled: props.disabled === true }}
       disabled={props.disabled}
       onPress={() => trigger(props.label, undefined, props.action)}
-      style={{ minHeight: 44, alignSelf: props.block ? "stretch" : "flex-start", justifyContent: "center", paddingHorizontal: space[16], borderRadius: 999, borderWidth: solid ? 0 : 1, borderColor: context.theme.colors.border, backgroundColor: solid ? context.theme.colors.foreground : "transparent", opacity: props.disabled ? 0.4 : 1 }}
+      style={{ minHeight: 44, alignSelf: props.block ? "stretch" : "flex-start", opacity: props.disabled ? 0.4 : 1 }}
     >
-      <Text style={{ color: solid ? context.theme.colors.surface0 : context.theme.colors.foreground, fontSize: 15, fontWeight: "600" }}>{props.label}</Text>
+      <Squircle radius={22} fill={props.block === true} style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: space[16], backgroundColor: solid ? context.theme.colors.foreground : "transparent", borderColor: context.theme.colors.border, borderWidth: solid ? 0 : 1 }}>
+        <Text style={{ textAlign: "center", color: solid ? context.theme.colors.surface0 : context.theme.colors.foreground, fontSize: 15, fontWeight: "600" }}>{props.label}</Text>
+      </Squircle>
     </Pressable>
   );
 };
@@ -143,7 +140,9 @@ const Chart: Renderer = ({ props }) => {
 // Accento giallo solo come bordo sottile sul primo blocco, mai pieno.
 export const accentRule = matteoYellow;
 
-const renderers: Record<string, Renderer> = { Col, Row, Card, Title, Text: Text_, Caption, Badge, Button, Table, Chart };
+const renderers: Record<string, Renderer> = {
+  Col, Row, Card, Title, Text: Text_, Caption, Badge, Button, Table, Chart, ...contentRenderers, ...controlRenderers,
+};
 
 export const openUiLibrary = createLibrary({
   components: openUiComponentDefs.map((def) =>
