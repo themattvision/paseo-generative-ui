@@ -103,6 +103,7 @@ npm install --save-exact "@openuidev/react-lang@$new_lr" "@openuidev/lang-core@$
 npm run prompt >> "$LOG" 2>&1 || abort_upgrade "rigenerazione del prompt"
 npm run typecheck >> "$LOG" 2>&1 || abort_upgrade "typecheck"
 npm test >> "$LOG" 2>&1 || abort_upgrade "test"
+npm run check:bundle >> "$LOG" 2>&1 || abort_upgrade "controllo bundle client"
 
 git add package.json package-lock.json shared/openui-prompt.generated.ts docs/openui-prompt.md
 git commit -m "Aggiorna OpenUI a react-lang $new_lr e lang-core $new_lc (automatico)" >> "$LOG" 2>&1 || abort_upgrade "commit"
