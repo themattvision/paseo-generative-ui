@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Linking, Platform, Text, View } from "react-native";
 import { usePaseo } from "@getpaseo/plugin/client";
 import { DocumentFrame, useToast } from "@getpaseo/plugin/client/ui";
-import { Renderer } from "@openuidev/react-lang";
+import { Renderer } from "./openui/react-lang";
 import type { GenerativeUiData } from "../shared/generative-ui.js";
 import { OpenUiContext, openUiLibrary } from "./openui/library.js";
 import { parseKnownNode, type Action, type KnownSpecNode, type SpecNode, validateSpec } from "../shared/spec.js";

@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from "react-native";
-import { createLibrary, defineComponent, useTriggerAction } from "@openuidev/react-lang";
+import { createLibrary, defineComponent, useTriggerAction } from "./react-lang";
 import { openUiComponentDefs } from "../../shared/openui-signatures.js";
 import { Squircle } from "../ds/squircle.js";
 import { space, matteoYellow } from "../ds/tokens.js";
