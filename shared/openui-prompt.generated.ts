@@ -37,6 +37,7 @@ Chart(type: "bar" | "line" | "area" | "pie" | "donut" | "scatter", data: Record<
 Divider() — Linea orizzontale sottile di separazione.
 Spacer() — Riempie lo spazio libero in una Row.
 Grid(children: any[], columns?: number, minChildWidth?: number, gap?: number) — Griglia a colonne uguali (default 2). Con minChildWidth le colonne scendono su schermi stretti.
+Carousel(children: any[], gap?: number, itemWidth?: number) — Riga di card scorrevole in orizzontale con aggancio. Ideale su telefono per locali, prodotti o opzioni: una Card per elemento.
 List(items: any[], marker?: "bullet" | "number" | "none", timeline?: boolean) — Elenco puntato o numerato. Con timeline le voci sono unite da una linea. Le voci sono stringhe o ListItem.
 ListItem(title: string, description?: string, marker?: string, children?: any[]) — Voce di elenco con titolo, descrizione facoltativa e marker (per esempio un orario).
 Image(src: string, alt: string, aspectRatio?: number, radius?: string | number, fit?: "cover" | "contain") — Foto da un URL http(s). aspectRatio è larghezza su altezza, per esempio 1.5.
@@ -69,4 +70,9 @@ Always write the root = Root(...) statement first so the UI shell appears immedi
 ## Final Verification
 Before finishing, walk your output and verify:
 1. root = Root(...) is the FIRST line (for optimal streaming).
-2. Every referenced name is defined. Every defined name (other than root) is reachable from root.`;
+2. Every referenced name is defined. Every defined name (other than root) is reachable from root.
+
+- Scegli il componente in base al contenuto. Elenchi di locali, luoghi, prodotti, offerte o opzioni NON vanno in Table: usa un Carousel (o una Grid) con una Card per elemento, dentro la card Title per il nome, Badge per voto o categoria, Caption per indirizzo o dettaglio, Text per la nota breve e Link per aprire la mappa o il sito.
+- Table solo per confronti di numeri o valori brevi con al massimo tre colonne; su telefono ogni riga diventa un blocco, quindi niente frasi lunghe nelle celle.
+- Usa Chart per andamenti e confronti numerici, Title 2xl con Caption per un numero chiave, List con timeline per sequenze e orari, Button con @ToAssistant per far scegliere all'utente il passo successivo.
+- Apri il blocco con un Title e una riga di Text che dica cosa mostra; mai più di quattro card per carosello senza motivo.`;

@@ -19,11 +19,18 @@ const preamble = [
   "Il testo OpenUI non supera 20000 caratteri; il campo spec resta disponibile per il formato classico.",
 ].join("\n");
 
+const importantRules = [
+  "Scegli il componente in base al contenuto. Elenchi di locali, luoghi, prodotti, offerte o opzioni NON vanno in Table: usa un Carousel (o una Grid) con una Card per elemento, dentro la card Title per il nome, Badge per voto o categoria, Caption per indirizzo o dettaglio, Text per la nota breve e Link per aprire la mappa o il sito.",
+  "Table solo per confronti di numeri o valori brevi con al massimo tre colonne; su telefono ogni riga diventa un blocco, quindi niente frasi lunghe nelle celle.",
+  "Usa Chart per andamenti e confronti numerici, Title 2xl con Caption per un numero chiave, List con timeline per sequenze e orari, Button con @ToAssistant per far scegliere all'utente il passo successivo.",
+  "Apri il blocco con un Title e una riga di Text che dica cosa mostra; mai più di quattro card per carosello senza motivo.",
+];
+
 const library = createLibrary({
   components: openUiComponentDefs.map((def) => defineComponent({ ...def, component: () => null })),
 });
 
-const prompt = generateSystemPrompt({ library: library.toSpec(), promptOptions: { preamble } });
+const prompt = generateSystemPrompt({ library: library.toSpec(), promptOptions: { preamble, additionalRules: importantRules } });
 
 // Escaping per template literal: backslash, backtick e sequenza ${ devono restare letterali.
 const escapeForTemplate = (text: string) =>

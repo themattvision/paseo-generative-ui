@@ -138,6 +138,15 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
     }),
   },
   {
+    name: "Carousel",
+    description: "Riga di card scorrevole in orizzontale con aggancio. Ideale su telefono per locali, prodotti o opzioni: una Card per elemento.",
+    props: z.object({
+      children: node,
+      gap: z.number().optional(),
+      itemWidth: z.number().optional(),
+    }),
+  },
+  {
     name: "List",
     description: "Elenco puntato o numerato. Con timeline le voci sono unite da una linea. Le voci sono stringhe o ListItem.",
     props: z.object({

@@ -97,6 +97,23 @@ const Table: Renderer = ({ props }) => {
   const columns: string[] = props.columns ?? [];
   const rows: unknown[][] = props.rows ?? [];
   const cell = (value: unknown) => (typeof value === "string" || typeof value === "number" ? String(value) : "");
+  // Su telefono le colonne strette spezzano il testo: ogni riga diventa un blocco con il primo valore come titolo.
+  if (context.compact && columns.length > 2) {
+    return (
+      <View style={{ width: "100%", borderWidth: 1, borderColor: context.theme.colors.border, borderRadius: 16, overflow: "hidden" }}>
+        {rows.map((row, rowIndex) => (
+          <View key={rowIndex} style={{ padding: space[12], gap: space[4], borderTopWidth: rowIndex === 0 ? 0 : 1, borderColor: context.theme.colors.border }}>
+            <Text style={{ color: context.theme.colors.foreground, fontSize: 16, lineHeight: 23, fontWeight: "600" }}>{cell(row[0])}</Text>
+            {columns.slice(1).map((column, offset) => (
+              <Text key={offset} style={{ color: context.theme.colors.foregroundMuted, fontSize: 14, lineHeight: 20 }}>
+                {column}: <Text style={{ color: context.theme.colors.foreground }}>{cell(row[offset + 1])}</Text>
+              </Text>
+            ))}
+          </View>
+        ))}
+      </View>
+    );
+  }
   return (
     <View style={{ width: "100%", borderWidth: 1, borderColor: context.theme.colors.border, borderRadius: 16, overflow: "hidden" }}>
       <View style={{ flexDirection: "row", backgroundColor: context.theme.colors.surface1 }}>

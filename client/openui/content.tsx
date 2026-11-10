@@ -35,7 +35,28 @@ const Grid: Renderer = ({ props, renderNode }) => {
   );
 };
 
-const ListItem: Renderer = ({ props, renderNode }) => {
+// Riga scorrevole con aggancio: ogni figlio ha larghezza fissa (default 280, scala 4/8: 280 = 70 x 4).
+const Carousel: Renderer = ({ props, renderNode }) => {
+  const gap: number = props.gap ?? space[12];
+  const width: number = props.itemWidth ?? 280;
+  const items: unknown[] = Array.isArray(props.children) ? props.children : [];
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      snapToInterval={width + gap}
+      decelerationRate="fast"
+      style={{ width: "100%" }}
+      contentContainerStyle={{ gap, paddingRight: space[16] }}
+    >
+      {items.map((child, index) => (
+        <View key={index} style={{ width }}>{renderNode(child)}</View>
+      ))}
+    </ScrollView>
+  );
+};
+
+const ListItem: Renderer =({ props, renderNode }) => {
   const { theme } = useUi();
   return (
     <View style={{ flexDirection: "row", gap: space[8], width: "100%" }}>
@@ -145,5 +166,5 @@ const Label: Renderer = ({ props }) => {
 };
 
 export const contentRenderers: Record<string, Renderer> = {
-  Divider, Spacer, Grid, List, ListItem, Image: ImageBlock, Link: LinkBlock, Quote, Code, Label,
+  Divider, Spacer, Grid, Carousel, List, ListItem, Image: ImageBlock, Link: LinkBlock, Quote, Code, Label,
 };
