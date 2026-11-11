@@ -43,12 +43,11 @@ export function GenerativeUiItem({ item, theme, layout, agentId }: GenerativeUiR
 
 // Blocco OpenUI Lang: stesso involucro del formato classico, contenuto dalla libreria client/openui/library.tsx.
 function OpenUiBlock({ title, openui, context }: { title?: string; openui: string; context: UiContext }) {
-  const padding = context.compact ? space[12] : space[24];
+  // Nessun involucro: il contenuto sta direttamente nella chat, come nel riferimento open-intelligent-ui.
   return (
-    <Squircle radius={28} style={{ backgroundColor: context.theme.colors.surface0, borderColor: context.theme.colors.border, borderWidth: 1 }}>
-      <View style={{ padding, gap: context.compact ? space[8] : space[16] }}>
-        {title ? <UiText variant="heading" context={context}>{title}</UiText> : null}
-        <OpenUiContext.Provider value={context}>
+    <View style={{ width: "100%", paddingVertical: space[8], gap: context.compact ? space[8] : space[16] }}>
+      {title ? <UiText variant="heading" context={context}>{title}</UiText> : null}
+      <OpenUiContext.Provider value={context}>
           <Renderer
             response={openui}
             library={openUiLibrary}
@@ -64,9 +63,8 @@ function OpenUiBlock({ title, openui, context }: { title?: string; openui: strin
               }
             }}
           />
-        </OpenUiContext.Provider>
-      </View>
-    </Squircle>
+      </OpenUiContext.Provider>
+    </View>
   );
 }
 

@@ -177,6 +177,24 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
     }),
   },
   {
+    name: "SearchImage",
+    description: "Foto trovata da sola su Wikipedia e Commons per una ricerca. query: 2-4 parole precise, per esempio il nome esatto di un luogo, monumento, piatto o prodotto. Se non trova nulla mostra un segnaposto.",
+    props: z.object({
+      query: z.string(),
+      aspectRatio: z.number().optional(),
+      radius: z.union([z.string(), z.number()]).optional(),
+      fit: z.enum(["cover", "contain"]).optional(),
+    }),
+  },
+  {
+    name: "Icon",
+    description: "Icona Lucide per nome in kebab-case (map-pin, star, clock, coffee, croissant, phone, globe, shopping-bag, heart, calendar). Usala accanto a un testo, in una Row.",
+    props: z.object({
+      name: z.string(),
+      size: z.number().optional(),
+    }),
+  },
+  {
     name: "Link",
     description: "Link cliccabile che apre un URL http(s).",
     props: z.object({ text: z.string(), url: z.string() }),

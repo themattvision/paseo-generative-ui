@@ -6,6 +6,8 @@ import { space, matteoYellow } from "../ds/tokens.js";
 import { OpenUiContext, useUi, type Renderer } from "./base.js";
 import { contentRenderers } from "./content.js";
 import { controlRenderers } from "./controls.js";
+import { mediaRenderers } from "./media.js";
+import { Icon as PaseoIcon } from "@getpaseo/plugin/client/ui";
 
 export { OpenUiContext };
 
@@ -19,9 +21,10 @@ const Col: Renderer = ({ props, renderNode }) => (
 );
 
 const Row: Renderer = ({ props, renderNode }) => {
+  const { compact } = useUi();
   const justify = props.justify === "between" ? "space-between" : props.justify === "end" ? "flex-end" : props.justify === "center" ? "center" : "flex-start";
   return (
-    <View style={{ width: "100%", flexDirection: useUi().compact ? "column" : "row", flexWrap: props.wrap ? "wrap" : "nowrap", gap: gapOf(props.gap, space[8]), alignItems: alignMap[props.align as keyof typeof alignMap] ?? "center", justifyContent: justify }}>
+    <View style={{ width: "100%", flexDirection: "row", flexWrap: props.wrap || compact ? "wrap" : "nowrap", gap: gapOf(props.gap, space[8]), alignItems: alignMap[props.align as keyof typeof alignMap] ?? "center", justifyContent: justify }}>
       {renderNode(props.children)}
     </View>
   );
@@ -31,7 +34,8 @@ const Card: Renderer = ({ props, renderNode }) => {
   const context = useUi();
   const soft = props.variant === "soft";
   return (
-    <Squircle radius={24} style={{ backgroundColor: soft ? context.theme.colors.surface1 : context.theme.colors.surface0, borderColor: context.theme.colors.border, borderWidth: soft ? 0 : 1 }}>
+    // Nessun bordo: la card è un riempimento morbido (soft più marcato), come nel riferimento open-intelligent-ui.
+    <Squircle radius={20} style={{ backgroundColor: soft ? context.theme.colors.surface2 : context.theme.colors.surface1 }}>
       <View style={{ padding: gapOf(props.padding, context.compact ? space[12] : space[16]), gap: gapOf(props.gap, space[8]) }}>
         {renderNode(props.children)}
       </View>
@@ -67,7 +71,8 @@ const Badge: Renderer = ({ props }) => {
   const context = useUi();
   const tone = (context.theme.colors as Record<string, string>)[badgeTone[props.color ?? "neutral"] ?? "foregroundMuted"];
   return (
-    <View style={{ alignSelf: "flex-start", paddingHorizontal: space[8], paddingVertical: space[4], borderRadius: 999, borderWidth: 1, borderColor: tone, backgroundColor: context.theme.colors.surface2 }}>
+    <View style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: space[4], paddingHorizontal: space[8], paddingVertical: space[4], borderRadius: 999, backgroundColor: context.theme.colors.surface2 }}>
+      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: tone }} />
       <Text style={{ color: context.theme.colors.foreground, fontSize: 12, fontWeight: "500" }}>{props.text}</Text>
     </View>
   );
@@ -76,7 +81,9 @@ const Badge: Renderer = ({ props }) => {
 const Button: Renderer = ({ props }) => {
   const context = useUi();
   const trigger = useTriggerAction();
-  const solid = props.variant !== "outline" && props.variant !== "ghost";
+  const solid = props.variant === "solid" || props.variant === undefined;
+  const tinted = props.variant === "soft" || props.variant === "outline";
+  const labelColor = solid ? context.theme.colors.surface0 : context.theme.colors.foreground;
   return (
     <Pressable
       accessibilityRole="button"
@@ -85,8 +92,11 @@ const Button: Renderer = ({ props }) => {
       onPress={() => trigger(props.label, undefined, props.action)}
       style={{ minHeight: 44, alignSelf: props.block ? "stretch" : "flex-start", opacity: props.disabled ? 0.4 : 1 }}
     >
-      <Squircle radius={22} fill={props.block === true} style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: space[16], backgroundColor: solid ? context.theme.colors.foreground : "transparent", borderColor: context.theme.colors.border, borderWidth: solid ? 0 : 1 }}>
-        <Text style={{ textAlign: "center", color: solid ? context.theme.colors.surface0 : context.theme.colors.foreground, fontSize: 15, fontWeight: "600" }}>{props.label}</Text>
+      <Squircle radius={22} fill={props.block === true} style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: space[16], backgroundColor: solid ? context.theme.colors.foreground : tinted ? context.theme.colors.surface2 : "transparent" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space[8] }}>
+          {props.icon ? <PaseoIcon name={String(props.icon)} size={18} color={labelColor} /> : null}
+          <Text style={{ textAlign: "center", color: labelColor, fontSize: 15, fontWeight: "600" }}>{props.label}</Text>
+        </View>
       </Squircle>
     </Pressable>
   );
@@ -100,9 +110,9 @@ const Table: Renderer = ({ props }) => {
   // Su telefono le colonne strette spezzano il testo: ogni riga diventa un blocco con il primo valore come titolo.
   if (context.compact && columns.length > 2) {
     return (
-      <View style={{ width: "100%", borderWidth: 1, borderColor: context.theme.colors.border, borderRadius: 16, overflow: "hidden" }}>
+      <View style={{ width: "100%" }}>
         {rows.map((row, rowIndex) => (
-          <View key={rowIndex} style={{ padding: space[12], gap: space[4], borderTopWidth: rowIndex === 0 ? 0 : 1, borderColor: context.theme.colors.border }}>
+          <View key={rowIndex} style={{ paddingVertical: space[12], gap: space[4], borderTopWidth: rowIndex === 0 ? 0 : 1, borderColor: context.theme.colors.border }}>
             <Text style={{ color: context.theme.colors.foreground, fontSize: 16, lineHeight: 23, fontWeight: "600" }}>{cell(row[0])}</Text>
             {columns.slice(1).map((column, offset) => (
               <Text key={offset} style={{ color: context.theme.colors.foregroundMuted, fontSize: 14, lineHeight: 20 }}>
@@ -115,16 +125,16 @@ const Table: Renderer = ({ props }) => {
     );
   }
   return (
-    <View style={{ width: "100%", borderWidth: 1, borderColor: context.theme.colors.border, borderRadius: 16, overflow: "hidden" }}>
-      <View style={{ flexDirection: "row", backgroundColor: context.theme.colors.surface1 }}>
+    <View style={{ width: "100%" }}>
+      <View style={{ flexDirection: "row" }}>
         {columns.map((column, index) => (
-          <Text key={index} style={{ flex: 1, padding: space[8], color: context.theme.colors.foregroundMuted, fontSize: 12, fontWeight: "600" }}>{column}</Text>
+          <Text key={index} style={{ flex: 1, paddingVertical: space[8], paddingRight: space[8], color: context.theme.colors.foregroundMuted, fontSize: 12, fontWeight: "600" }}>{column}</Text>
         ))}
       </View>
       {rows.map((row, rowIndex) => (
         <View key={rowIndex} style={{ flexDirection: "row", borderTopWidth: 1, borderColor: context.theme.colors.border }}>
           {columns.map((_, cellIndex) => (
-            <Text key={cellIndex} style={{ flex: 1, padding: space[8], color: context.theme.colors.foreground, fontSize: 14 }}>{cell(row[cellIndex])}</Text>
+            <Text key={cellIndex} style={{ flex: 1, paddingVertical: space[12], paddingRight: space[8], color: context.theme.colors.foreground, fontSize: 14 }}>{cell(row[cellIndex])}</Text>
           ))}
         </View>
       ))}
@@ -158,7 +168,7 @@ const Chart: Renderer = ({ props }) => {
 export const accentRule = matteoYellow;
 
 const renderers: Record<string, Renderer> = {
-  Col, Row, Card, Title, Text: Text_, Caption, Badge, Button, Table, Chart, ...contentRenderers, ...controlRenderers,
+  Col, Row, Card, Title, Text: Text_, Caption, Badge, Button, Table, Chart, ...contentRenderers, ...controlRenderers, ...mediaRenderers,
 };
 
 export const openUiLibrary = createLibrary({

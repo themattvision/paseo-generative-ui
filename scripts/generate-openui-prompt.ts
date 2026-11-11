@@ -20,10 +20,13 @@ const preamble = [
 ].join("\n");
 
 const importantRules = [
-  "Scegli il componente in base al contenuto. Elenchi di locali, luoghi, prodotti, offerte o opzioni NON vanno in Table: usa un Carousel (o una Grid) con una Card per elemento, dentro la card Title per il nome, Badge per voto o categoria, Caption per indirizzo o dettaglio, Text per la nota breve e Link per aprire la mappa o il sito.",
+  "STILE: il blocco è visivo, arioso e senza scatole. Non avvolgere tutto in una Card e non annidare Card dentro Card: una sola Card per elemento di un elenco, mai attorno all'intero blocco. Il resto sta direttamente in Col con Title, Text, immagini e icone.",
+  "FOTO: per luoghi, monumenti, locali, piatti, prodotti e persone note metti sempre una SearchImage (query di 2-4 parole precise, per esempio il nome esatto del posto e la città) in cima alla card o in una riga di tre foto con Carousel. Una Row di tre SearchImage con aspectRatio 1 funziona bene come striscia iniziale.",
+  "ICONE: accanto a ogni dato breve metti una Icon Lucide in una Row (map-pin per l'indirizzo, star per il voto, clock per gli orari, phone, globe, euro, croissant, coffee), e passa icon ai Button (map, external-link, send, check). Niente emoji al posto delle icone.",
+  "Elenchi di locali, luoghi, prodotti, offerte o opzioni NON vanno in Table: usa un Carousel (o una Grid) con una Card per elemento. Dentro la card: SearchImage in alto, Title per il nome, Badge per categoria o voto, righe Icon + Caption per indirizzo e orari, Text per la nota breve, Button soft con icon per aprire mappa o sito (o Link).",
   "Table solo per confronti di numeri o valori brevi con al massimo tre colonne; su telefono ogni riga diventa un blocco, quindi niente frasi lunghe nelle celle.",
-  "Usa Chart per andamenti e confronti numerici, Title 2xl con Caption per un numero chiave, List con timeline per sequenze e orari, Button con @ToAssistant per far scegliere all'utente il passo successivo.",
-  "Apri il blocco con un Title e una riga di Text che dica cosa mostra; mai più di quattro card per carosello senza motivo.",
+  "Chart per andamenti e confronti numerici, Title 2xl con Caption per un numero chiave, List con timeline per sequenze e orari, Button con @ToAssistant per far scegliere all'utente il passo successivo.",
+  "Apri il blocco con un Title e una riga di Text che dica cosa mostra; non più di sei card per carosello senza motivo.",
 ];
 
 const library = createLibrary({

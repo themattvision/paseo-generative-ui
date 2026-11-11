@@ -41,6 +41,8 @@ Carousel(children: any[], gap?: number, itemWidth?: number) — Riga di card sco
 List(items: any[], marker?: "bullet" | "number" | "none", timeline?: boolean) — Elenco puntato o numerato. Con timeline le voci sono unite da una linea. Le voci sono stringhe o ListItem.
 ListItem(title: string, description?: string, marker?: string, children?: any[]) — Voce di elenco con titolo, descrizione facoltativa e marker (per esempio un orario).
 Image(src: string, alt: string, aspectRatio?: number, radius?: string | number, fit?: "cover" | "contain") — Foto da un URL http(s). aspectRatio è larghezza su altezza, per esempio 1.5.
+SearchImage(query: string, aspectRatio?: number, radius?: string | number, fit?: "cover" | "contain") — Foto trovata da sola su Wikipedia e Commons per una ricerca. query: 2-4 parole precise, per esempio il nome esatto di un luogo, monumento, piatto o prodotto. Se non trova nulla mostra un segnaposto.
+Icon(name: string, size?: number) — Icona Lucide per nome in kebab-case (map-pin, star, clock, coffee, croissant, phone, globe, shopping-bag, heart, calendar). Usala accanto a un testo, in una Row.
 Link(text: string, url: string) — Link cliccabile che apre un URL http(s).
 Quote(text: string, cite?: string) — Citazione con filetto laterale. cite indica la fonte.
 Code(code: string, language?: string) — Blocco di codice in monospazio, con scorrimento orizzontale.
@@ -72,7 +74,10 @@ Before finishing, walk your output and verify:
 1. root = Root(...) is the FIRST line (for optimal streaming).
 2. Every referenced name is defined. Every defined name (other than root) is reachable from root.
 
-- Scegli il componente in base al contenuto. Elenchi di locali, luoghi, prodotti, offerte o opzioni NON vanno in Table: usa un Carousel (o una Grid) con una Card per elemento, dentro la card Title per il nome, Badge per voto o categoria, Caption per indirizzo o dettaglio, Text per la nota breve e Link per aprire la mappa o il sito.
+- STILE: il blocco è visivo, arioso e senza scatole. Non avvolgere tutto in una Card e non annidare Card dentro Card: una sola Card per elemento di un elenco, mai attorno all'intero blocco. Il resto sta direttamente in Col con Title, Text, immagini e icone.
+- FOTO: per luoghi, monumenti, locali, piatti, prodotti e persone note metti sempre una SearchImage (query di 2-4 parole precise, per esempio il nome esatto del posto e la città) in cima alla card o in una riga di tre foto con Carousel. Una Row di tre SearchImage con aspectRatio 1 funziona bene come striscia iniziale.
+- ICONE: accanto a ogni dato breve metti una Icon Lucide in una Row (map-pin per l'indirizzo, star per il voto, clock per gli orari, phone, globe, euro, croissant, coffee), e passa icon ai Button (map, external-link, send, check). Niente emoji al posto delle icone.
+- Elenchi di locali, luoghi, prodotti, offerte o opzioni NON vanno in Table: usa un Carousel (o una Grid) con una Card per elemento. Dentro la card: SearchImage in alto, Title per il nome, Badge per categoria o voto, righe Icon + Caption per indirizzo e orari, Text per la nota breve, Button soft con icon per aprire mappa o sito (o Link).
 - Table solo per confronti di numeri o valori brevi con al massimo tre colonne; su telefono ogni riga diventa un blocco, quindi niente frasi lunghe nelle celle.
-- Usa Chart per andamenti e confronti numerici, Title 2xl con Caption per un numero chiave, List con timeline per sequenze e orari, Button con @ToAssistant per far scegliere all'utente il passo successivo.
-- Apri il blocco con un Title e una riga di Text che dica cosa mostra; mai più di quattro card per carosello senza motivo.`;
+- Chart per andamenti e confronti numerici, Title 2xl con Caption per un numero chiave, List con timeline per sequenze e orari, Button con @ToAssistant per far scegliere all'utente il passo successivo.
+- Apri il blocco con un Title e una riga di Text che dica cosa mostra; non più di sei card per carosello senza motivo.`;

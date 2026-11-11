@@ -1,9 +1,8 @@
-import { useState } from "react";
-import { Image, Pressable, Platform, ScrollView, Text, View, type ViewStyle } from "react-native";
+import { Pressable, Platform, ScrollView, Text, View, type ViewStyle } from "react-native";
 import { Squircle } from "../ds/squircle.js";
 import { space } from "../ds/tokens.js";
 import { openExternal } from "../web.js";
-import { radiusOf, useUi, type Renderer } from "./base.js";
+import { useUi, type Renderer } from "./base.js";
 
 // Componenti statici di contenuto: nessuno stato, solo primitive React Native.
 
@@ -97,29 +96,6 @@ const List: Renderer = ({ props, renderNode }) => {
   );
 };
 
-// Foto remota: il testo alternativo sostituisce l'immagine se l'URL non è http(s) o non si carica.
-const ImageBlock: Renderer = ({ props }) => {
-  const { theme } = useUi();
-  const [failed, setFailed] = useState(false);
-  const src = String(props.src ?? "");
-  const alt = String(props.alt ?? "");
-  const ratio = typeof props.aspectRatio === "number" && props.aspectRatio > 0 ? props.aspectRatio : 16 / 9;
-  if (failed || !isHttpUrl(src)) {
-    return <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12, lineHeight: 17 }}>{alt || "Immagine non disponibile"}</Text>;
-  }
-  return (
-    <Squircle radius={radiusOf(props.radius, 16)} style={{ backgroundColor: theme.colors.surface1 }}>
-      <Image
-        source={{ uri: src }}
-        accessibilityLabel={alt}
-        resizeMode={props.fit === "contain" ? "contain" : "cover"}
-        onError={() => setFailed(true)}
-        style={{ width: "100%", aspectRatio: ratio }}
-      />
-    </Squircle>
-  );
-};
-
 const LinkBlock: Renderer = ({ props }) => {
   const { theme } = useUi();
   const url = String(props.url ?? "");
@@ -151,7 +127,7 @@ const monoFamily = Platform.select({ ios: "Menlo", android: "monospace", default
 const Code: Renderer = ({ props }) => {
   const { theme } = useUi();
   return (
-    <Squircle radius={16} style={{ backgroundColor: theme.colors.surface1, borderColor: theme.colors.border, borderWidth: 1 }}>
+    <Squircle radius={16} style={{ backgroundColor: theme.colors.surface1 }}>
       {props.language ? <Text style={{ color: theme.colors.foregroundMuted, fontSize: 11, lineHeight: 15, paddingHorizontal: space[12], paddingTop: space[8] }}>{String(props.language)}</Text> : null}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ padding: space[12] }}>
         <Text selectable style={{ color: theme.colors.foreground, fontFamily: monoFamily, fontSize: 13, lineHeight: 19 }}>{String(props.code ?? "")}</Text>
@@ -166,5 +142,5 @@ const Label: Renderer = ({ props }) => {
 };
 
 export const contentRenderers: Record<string, Renderer> = {
-  Divider, Spacer, Grid, Carousel, List, ListItem, Image: ImageBlock, Link: LinkBlock, Quote, Code, Label,
+  Divider, Spacer, Grid, Carousel, List, ListItem, Link: LinkBlock, Quote, Code, Label,
 };
