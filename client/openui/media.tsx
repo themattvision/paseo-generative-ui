@@ -31,18 +31,41 @@ async function fetchJson(url: string): Promise<any> {
   }
 }
 
-async function wikipediaPhotos(lang: string, query: string): Promise<Photo[]> {
+// Pertinenza: la ricerca testuale di Wikipedia e Commons restituisce spesso foto a caso per attività piccole
+// (caso reale: «Sicilian Goodness Padova» dava il Palio di Siena). Una foto sbagliata è peggio del segnaposto,
+// quindi si tiene un risultato solo se il titolo della pagina o del file contiene almeno metà delle parole della ricerca.
+const stopWords = new Set(["della", "delle", "degli", "dello", "del", "dei", "the", "and", "per", "con", "di", "da", "in", "su", "la", "il", "le", "lo", "un", "una", "of", "at"]);
+const tokensOf = (text: string) =>
+  text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().split(/[^a-z0-9]+/).filter((word) => word.length >= 3 && !stopWords.has(word));
+
+function isRelevant(query: string, title: string): boolean {
+  const wanted = tokensOf(query);
+  if (wanted.length === 0) return false;
+  const found = new Set(tokensOf(title));
+  const hits = wanted.filter((word) => found.has(word)).length;
+  return hits >= Math.ceil(wanted.length / 2) && hits >= Math.min(2, wanted.length);
+}
+
+type Candidate = { url: string; title: string };
+
+async function wikipediaPhotos(lang: string, query: string): Promise<Candidate[]> {
   const url = `https://${lang}.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=4&prop=pageimages&piprop=thumbnail&pithumbsize=960&format=json&origin=*`;
   const json = await fetchJson(url);
   const pages: any[] = Object.values(json?.query?.pages ?? {});
-  return pages.sort((a, b) => (a.index ?? 0) - (b.index ?? 0)).map((page) => page?.thumbnail?.source).filter((src): src is string => typeof src === "string");
+  return pages
+    .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+    .map((page) => ({ url: page?.thumbnail?.source, title: String(page?.title ?? "") }))
+    .filter((item): item is Candidate => typeof item.url === "string");
 }
 
-async function commonsPhotos(query: string): Promise<Photo[]> {
+async function commonsPhotos(query: string): Promise<Candidate[]> {
   const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrnamespace=6&gsrlimit=4&prop=imageinfo&iiprop=url&iiurlwidth=960&format=json&origin=*`;
   const json = await fetchJson(url);
   const pages: any[] = Object.values(json?.query?.pages ?? {});
-  return pages.sort((a, b) => (a.index ?? 0) - (b.index ?? 0)).map((page) => page?.imageinfo?.[0]?.thumburl).filter((src): src is string => typeof src === "string" && imageExt.test(src));
+  return pages
+    .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+    .map((page) => ({ url: page?.imageinfo?.[0]?.thumburl, title: String(page?.title ?? "") }))
+    .filter((item): item is Candidate => typeof item.url === "string" && imageExt.test(item.url));
 }
 
 function searchPhotos(query: string): Promise<Photo[]> {
@@ -50,7 +73,7 @@ function searchPhotos(query: string): Promise<Photo[]> {
   const hit = cache.get(key);
   if (hit) return hit;
   const pending = Promise.all([wikipediaPhotos("it", query), wikipediaPhotos("en", query), commonsPhotos(query)]).then((lists) => {
-    const photos = [...new Set(lists.flat())];
+    const photos = [...new Set(lists.flat().filter((item) => isRelevant(query, item.title)).map((item) => item.url))];
     if (photos.length === 0) cache.delete(key);
     return photos;
   });
