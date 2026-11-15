@@ -9,11 +9,16 @@ import { radiusOf, useUi, type Renderer } from "./base.js";
 
 const isHttpUrl = (value: string) => /^https?:\/\//i.test(value);
 
-// Nomi Lucide in kebab-case: un nome non valido non disegna nulla (comportamento del plugin SDK).
+// L'SDK Paseo vuole i nomi Lucide in PascalCase ("MapPin"), mentre gli agenti scrivono kebab-case ("map-pin"):
+// un nome non riconosciuto non disegna NULLA, senza errori (SINTOMO: icone e segnaposto foto invisibili).
+// Si converte qui, in un punto solo; un nome già in PascalCase resta com'è.
+export const lucideName = (name: string): string =>
+  name.trim().split(/[-_\s]+/).filter(Boolean).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join("") || "Circle";
+
 const Icon: Renderer = ({ props }) => {
   const { theme } = useUi();
   const size = typeof props.size === "number" ? props.size : 20;
-  return <PaseoIcon name={String(props.name ?? "circle")} size={size} color={theme.colors.foregroundMuted} />;
+  return <PaseoIcon name={lucideName(String(props.name ?? "circle"))} size={size} color={theme.colors.foregroundMuted} />;
 };
 
 type Photo = string;
@@ -22,13 +27,30 @@ const cache = new Map<string, Promise<Photo[]>>();
 const imageExt = /\.(jpe?g|png|webp)(\?|$)/i;
 
 // Ricerca immagini lato client, senza chiavi: it.wikipedia, en.wikipedia (miniature dell'articolo) e Commons.
-async function fetchJson(url: string): Promise<any> {
-  try {
-    const response = await fetch(url);
-    return response.ok ? await response.json() : null;
-  } catch {
+// Le API di Wikimedia rispondono 429 a una raffica di richieste (SINTOMO verificato l'11 novembre 2026: 4 card x 3 fonti
+// insieme, poi anche la ricerca di ripiego, e quasi tutte le chiamate tornano 429 e la card resta col segnaposto).
+// Quindi tutte le ricerche passano da UNA coda globale: una richiesta alla volta, distanziate di 400 ms, e su 429
+// o rete caduta si riprova fino a 3 volte con attesa crescente (1,2 s, 2,4 s, 3,6 s).
+let queue: Promise<unknown> = Promise.resolve();
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function fetchJson(url: string): Promise<any> {
+  const run = async (): Promise<any> => {
+    for (let attempt = 0; attempt <= 3; attempt += 1) {
+      try {
+        const response = await fetch(url);
+        if (response.ok) return await response.json();
+        if (response.status !== 429 && response.status < 500) return null;
+      } catch {
+        // rete caduta: si riprova sotto
+      }
+      await wait(1200 * (attempt + 1));
+    }
     return null;
-  }
+  };
+  const result = queue.then(run).finally(() => wait(400));
+  queue = result.catch(() => undefined);
+  return result;
 }
 
 // Pertinenza: la ricerca testuale di Wikipedia e Commons restituisce spesso foto a caso per attività piccole
@@ -72,7 +94,7 @@ function searchPhotos(query: string): Promise<Photo[]> {
   const key = query.trim().toLowerCase();
   const hit = cache.get(key);
   if (hit) return hit;
-  const pending = Promise.all([wikipediaPhotos("it", query), wikipediaPhotos("en", query), commonsPhotos(query)]).then((lists) => {
+  const pending = Promise.all([wikipediaPhotos("it", query), commonsPhotos(query)]).then((lists) => {
     const photos = [...new Set(lists.flat().filter((item) => isRelevant(query, item.title)).map((item) => item.url))];
     if (photos.length === 0) cache.delete(key);
     return photos;
@@ -82,27 +104,35 @@ function searchPhotos(query: string): Promise<Photo[]> {
   return pending;
 }
 
+// Prima la foto precisa; se non esiste (locali piccoli) la foto generica del tipo di cosa (fallback).
+async function searchWithFallback(query: string, fallback?: string): Promise<Photo[]> {
+  const exact = await searchPhotos(query);
+  if (exact.length > 0 || !fallback || fallback.trim().length < 3) return exact;
+  return searchPhotos(fallback);
+}
+
 // Aspetta mezzo secondo prima di cercare: durante lo streaming la query arriva a pezzi.
-function usePhotos(query: string, enabled: boolean) {
-  const [state, setState] = useState<{ query: string; photos: Photo[]; done: boolean }>({ query, photos: [], done: false });
+function usePhotos(query: string, fallback: string | undefined, enabled: boolean) {
+  const stamp = `${query}|${fallback ?? ""}`;
+  const [state, setState] = useState<{ stamp: string; photos: Photo[]; done: boolean }>({ stamp, photos: [], done: false });
   useEffect(() => {
     if (!enabled || query.trim().length < 3) return;
     let current = true;
     const timer = setTimeout(() => {
-      void searchPhotos(query).then((photos) => {
-        if (current) setState({ query, photos, done: true });
+      void searchWithFallback(query, fallback).then((photos) => {
+        if (current) setState({ stamp, photos, done: true });
       });
     }, 500);
     return () => { current = false; clearTimeout(timer); };
-  }, [query, enabled]);
-  return state.query === query ? state : { query, photos: [], done: false };
+  }, [query, fallback, stamp, enabled]);
+  return state.stamp === stamp ? state : { stamp, photos: [], done: false };
 }
 
-function PhotoBlock({ src, query, props }: { src?: string; query: string; props: Record<string, any> }) {
+function PhotoBlock({ src, query, fallback, props }: { src?: string; query: string; fallback?: string; props: Record<string, any> }) {
   const { theme } = useUi();
   const [failed, setFailed] = useState<string[]>([]);
   const direct = src && isHttpUrl(src) ? src : undefined;
-  const found = usePhotos(query, !direct || failed.includes(direct));
+  const found = usePhotos(query, fallback, !direct || failed.includes(direct));
   const candidates = [direct, ...found.photos].filter((url): url is string => Boolean(url) && !failed.includes(url as string));
   const url = candidates[0];
   const ratio = typeof props.aspectRatio === "number" && props.aspectRatio > 0.2 && props.aspectRatio < 5 ? props.aspectRatio : 1.5;
@@ -118,7 +148,7 @@ function PhotoBlock({ src, query, props }: { src?: string; query: string; props:
             style={{ position: "absolute", width: "100%", height: "100%" }}
           />
         ) : (
-          <PaseoIcon name="image" size={28} color={theme.colors.foregroundMuted} />
+          <PaseoIcon name="Image" size={28} color={theme.colors.foregroundMuted} />
         )}
       </View>
     </Squircle>
@@ -126,6 +156,8 @@ function PhotoBlock({ src, query, props }: { src?: string; query: string; props:
 }
 
 const ImageBlock: Renderer = ({ props }) => <PhotoBlock src={String(props.src ?? "")} query={String(props.alt ?? "")} props={props} />;
-const SearchImage: Renderer = ({ props }) => <PhotoBlock query={String(props.query ?? "")} props={props} />;
+const SearchImage: Renderer = ({ props }) => (
+  <PhotoBlock query={String(props.query ?? "")} fallback={typeof props.fallback === "string" ? props.fallback : undefined} props={props} />
+);
 
 export const mediaRenderers: Record<string, Renderer> = { Icon, Image: ImageBlock, SearchImage };

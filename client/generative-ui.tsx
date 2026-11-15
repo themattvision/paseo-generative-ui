@@ -1,6 +1,7 @@
 import type { PluginTimelineItemProps } from "@getpaseo/plugin/client";
 import { useEffect, useMemo, useState } from "react";
-import { Linking, Platform, Text, View } from "react-native";
+import { Platform, Text, View } from "react-native";
+import { openExternal } from "./web";
 import { usePaseo } from "@getpaseo/plugin/client";
 import { DocumentFrame, useToast } from "@getpaseo/plugin/client/ui";
 import { Renderer } from "./openui/react-lang";
@@ -8,6 +9,7 @@ import type { GenerativeUiData } from "../shared/generative-ui.js";
 import { OpenUiContext, openUiLibrary } from "./openui/library.js";
 import { parseKnownNode, type Action, type KnownSpecNode, type SpecNode, validateSpec } from "../shared/spec.js";
 import { actionMessage } from "../shared/action.js";
+import { takePressedLabel } from "./pressed.js";
 import { documentHtml } from "../shared/html.js";
 import { Badge, Card, CheckGlyph, UiButton, UiText, type UiContext } from "./ds/components.js";
 import { Squircle } from "./ds/squircle.js";
@@ -28,8 +30,8 @@ export function GenerativeUiItem({ item, theme, layout, agentId }: GenerativeUiR
     title: item.data.title,
     onAction: async (event) => {
       try {
-        await paseo.agents.ref(agentId).send(actionMessage(event, item.data.rowId ?? "riga-senza-id", item.data.title));
-        toast.show("Azione inviata all’agente", { variant: "success" });
+        await paseo.agents.ref(agentId).send(actionMessage(event, item.data.rowId ?? "riga-senza-id", item.data.title, takePressedLabel()));
+        // Niente toast di conferma: il feedback è il chip del bottone premuto che compare nella timeline.
       } catch (error) {
         toast.show("Invio non riuscito. Puoi riprovare.", { variant: "error" });
         throw error;
@@ -44,9 +46,10 @@ export function GenerativeUiItem({ item, theme, layout, agentId }: GenerativeUiR
 // Blocco OpenUI Lang: stesso involucro del formato classico, contenuto dalla libreria client/openui/library.tsx.
 function OpenUiBlock({ title, openui, context }: { title?: string; openui: string; context: UiContext }) {
   // Nessun involucro: il contenuto sta direttamente nella chat, come nel riferimento open-intelligent-ui.
+  const toast = useToast();
   return (
     <View style={{ width: "100%", paddingVertical: space[8], gap: context.compact ? space[8] : space[16] }}>
-      {title ? <UiText variant="heading" context={context}>{title}</UiText> : null}
+      {title && !openui.includes(JSON.stringify(title)) ? <UiText variant="heading" context={context}>{title}</UiText> : null}
       <OpenUiContext.Provider value={context}>
           <Renderer
             response={openui}
@@ -54,8 +57,14 @@ function OpenUiBlock({ title, openui, context }: { title?: string; openui: strin
             onAction={(event) => {
               // Stesso canale delle azioni classiche: il messaggio torna all'agente nella stessa chat.
               if (event.type === "open_url") {
-                // Link esterno: apertura diretta, nessun messaggio all'agente. Da verificare il modo usato altrove nel plugin.
-                void Linking.openURL(String(event.params.url ?? ""));
+                // Link esterno: apertura diretta, nessun messaggio all'agente. Stesso helper del pulsante del saluto
+                // (window.open sul web, Linking altrove). L'errore non si ingoia: toast visibile.
+                const url = String(event.params.url ?? "");
+                if (!/^https?:\/\//i.test(url)) {
+                  toast.show("Link non valido", { variant: "error" });
+                  return;
+                }
+                openExternal(url).catch(() => toast.show("Non sono riuscito ad aprire il link", { variant: "error" }));
                 return;
               }
               if (event.type === "continue_conversation") {

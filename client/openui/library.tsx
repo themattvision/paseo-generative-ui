@@ -1,4 +1,6 @@
-import { Pressable, Text, View } from "react-native";
+import { useRef } from "react";
+import { Animated, Pressable, Text, View } from "react-native";
+import { rememberPressedLabel } from "../pressed.js";
 import { createLibrary, defineComponent, useTriggerAction } from "./react-lang";
 import { openUiComponentDefs } from "../../shared/openui-signatures.js";
 import { Squircle } from "../ds/squircle.js";
@@ -6,7 +8,7 @@ import { space, matteoYellow } from "../ds/tokens.js";
 import { OpenUiContext, useUi, type Renderer } from "./base.js";
 import { contentRenderers } from "./content.js";
 import { controlRenderers } from "./controls.js";
-import { mediaRenderers } from "./media.js";
+import { lucideName, mediaRenderers } from "./media.js";
 import { Icon as PaseoIcon } from "@getpaseo/plugin/client/ui";
 
 export { OpenUiContext };
@@ -84,20 +86,27 @@ const Button: Renderer = ({ props }) => {
   const solid = props.variant === "solid" || props.variant === undefined;
   const tinted = props.variant === "soft" || props.variant === "outline";
   const labelColor = solid ? context.theme.colors.surface0 : context.theme.colors.foreground;
+  // Feedback di pressione: il bottone si schiaccia con una molla e torna su al rilascio.
+  const scale = useRef(new Animated.Value(1)).current;
+  const springTo = (value: number) => Animated.spring(scale, { toValue: value, useNativeDriver: true, speed: 60, bounciness: value < 1 ? 0 : 10 }).start();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ disabled: props.disabled === true }}
       disabled={props.disabled}
-      onPress={() => trigger(props.label, undefined, props.action)}
+      onPressIn={() => springTo(0.94)}
+      onPressOut={() => springTo(1)}
+      onPress={() => { rememberPressedLabel(String(props.label)); trigger(props.label, undefined, props.action); }}
       style={{ minHeight: 44, alignSelf: props.block ? "stretch" : "flex-start", opacity: props.disabled ? 0.4 : 1 }}
     >
+      <Animated.View style={{ transform: [{ scale }] }}>
       <Squircle radius={22} fill={props.block === true} style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: space[16], backgroundColor: solid ? context.theme.colors.foreground : tinted ? context.theme.colors.surface2 : "transparent" }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space[8] }}>
-          {props.icon ? <PaseoIcon name={String(props.icon)} size={18} color={labelColor} /> : null}
+          {props.icon ? <PaseoIcon name={lucideName(String(props.icon))} size={18} color={labelColor} /> : null}
           <Text style={{ textAlign: "center", color: labelColor, fontSize: 15, fontWeight: "600" }}>{props.label}</Text>
         </View>
       </Squircle>
+      </Animated.View>
     </Pressable>
   );
 };

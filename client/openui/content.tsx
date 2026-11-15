@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Pressable, Platform, ScrollView, Text, View, type ViewStyle } from "react-native";
 import { Squircle } from "../ds/squircle.js";
 import { space } from "../ds/tokens.js";
@@ -35,23 +36,124 @@ const Grid: Renderer = ({ props, renderNode }) => {
 };
 
 // Riga scorrevole con aggancio: ogni figlio ha larghezza fissa (default 280, scala 4/8: 280 = 70 x 4).
+// Sfumatura sul bordo: niente libreria di gradienti, quindi strisce da 4px con opacità decrescente
+// del colore di fondo (surface0), uguale su web e telefono.
+const FADE_WIDTH = 48;
+const FADE_STEPS = 12;
+
+const EdgeFade = ({ side, color }: { side: "left" | "right"; color: string }) => {
+  const stripWidth = FADE_WIDTH / FADE_STEPS;
+  return (
+    <View
+      pointerEvents="none"
+      style={{ position: "absolute", top: 0, bottom: 0, [side]: 0, width: FADE_WIDTH, flexDirection: side === "left" ? "row" : "row-reverse" }}
+    >
+      {Array.from({ length: FADE_STEPS }, (_, index) => (
+        // Dal bordo verso l'interno l'opacità scende da piena a quasi zero (curva morbida).
+        <View key={index} style={{ width: stripWidth, backgroundColor: color, opacity: Math.pow(1 - index / FADE_STEPS, 1.6) }} />
+      ))}
+    </View>
+  );
+};
+
+// Elasticità ai bordi. Sul telefono ci pensa il ScrollView nativo (bounces, overScrollMode). Sul web (Paseo desktop)
+// non esiste, quindi: quando il trackpad (eventi wheel orizzontali, inerzia compresa) spinge oltre il primo o l'ultimo
+// elemento, il contenuto si sposta con una resistenza crescente e, a gesto finito, rientra con una molla leggera
+// che supera un filo la posizione (cubic-bezier con overshoot).
+// REATTIVITÀ (12 novembre 2026, Matteo: «rimane fermo e poi si muove»): la prima versione smorzava già i primi
+// movimenti (guadagno 0,5 con resistenza subito crescente) e i primi eventi wheel di un gesto sono minuscoli, quindi
+// per un attimo non si vedeva nulla. Ora lo spostamento è una curva esponenziale della trazione accumulata:
+// pendenza iniziale 1,6 (si muove subito, più delle dita) e poi satura a ELASTIC_MAX, come l'elastico di iOS.
+const ELASTIC_MAX = 96;
+const ELASTIC_GAIN = 1.6;
+const ELASTIC_RELEASE_MS = 90;
+
+function useElasticEdges(scrollRef: { current: any }) {
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const node: any = scrollRef.current?.getScrollableNode?.();
+    const content: any = node?.firstElementChild;
+    if (!node || !content) return;
+    // pull: trazione accumulata oltre il bordo, con segno (positiva = oltre la fine, negativa = oltre l'inizio).
+    let pull = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const apply = (animated: boolean) => {
+      const stretch = pull === 0 ? 0 : -Math.sign(pull) * ELASTIC_MAX * (1 - Math.exp((-ELASTIC_GAIN * Math.abs(pull)) / ELASTIC_MAX));
+      content.style.transition = animated ? "transform 600ms cubic-bezier(0.34, 1.56, 0.64, 1)" : "none";
+      content.style.transform = stretch === 0 ? "" : `translateX(${stretch}px)`;
+    };
+    const onWheel = (event: any) => {
+      if (Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return; // scorrimento verticale: lascia la chat scorrere
+      const max = node.scrollWidth - node.clientWidth;
+      if (max <= 0) return;
+      const pullingPastEnd = node.scrollLeft >= max - 2 && event.deltaX > 0;
+      const pullingPastStart = node.scrollLeft <= 2 && event.deltaX < 0;
+      if (pull === 0 && !pullingPastEnd && !pullingPastStart) return;
+      const next = pull + event.deltaX;
+      // Se il gesto torna verso il contenuto e supera lo zero, l'elastico è rientrato: si azzera e riprende lo scroll normale.
+      if ((pull > 0 && next <= 0) || (pull < 0 && next >= 0)) {
+        pull = 0;
+        apply(false);
+        if (timer) clearTimeout(timer);
+        return;
+      }
+      event.preventDefault();
+      // Tetto alla trazione accumulata: oltre, lo spostamento è già saturo e al ritorno il gesto resterebbe "incollato".
+      pull = Math.max(-ELASTIC_MAX * 2, Math.min(ELASTIC_MAX * 2, next));
+      apply(false);
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { pull = 0; apply(true); }, ELASTIC_RELEASE_MS);
+    };
+    node.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      if (timer) clearTimeout(timer);
+      node.removeEventListener("wheel", onWheel);
+      content.style.transition = "";
+      content.style.transform = "";
+    };
+  }, [scrollRef]);
+}
+
+// Riga scorrevole con aggancio: ogni figlio ha larghezza fissa (default 280, scala 4/8: 280 = 70 x 4).
+// Le sfumature compaiono solo dal lato dove c'è altro contenuto da scoprire scorrendo.
 const Carousel: Renderer = ({ props, renderNode }) => {
+  const { theme } = useUi();
+  const scrollRef = useRef<any>(null);
+  useElasticEdges(scrollRef);
   const gap: number = props.gap ?? space[12];
   const width: number = props.itemWidth ?? 280;
   const items: unknown[] = Array.isArray(props.children) ? props.children : [];
+  const [layoutWidth, setLayoutWidth] = useState(0);
+  const [contentWidth, setContentWidth] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const maxOffset = Math.max(0, contentWidth - layoutWidth);
+  const showLeft = offset > 4;
+  const showRight = maxOffset > 0 && offset < maxOffset - 4;
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      snapToInterval={width + gap}
-      decelerationRate="fast"
-      style={{ width: "100%" }}
-      contentContainerStyle={{ gap, paddingRight: space[16] }}
-    >
-      {items.map((child, index) => (
-        <View key={index} style={{ width }}>{renderNode(child)}</View>
-      ))}
-    </ScrollView>
+    <View style={{ width: "100%" }}>
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        bounces
+        alwaysBounceHorizontal
+        overScrollMode="always"
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={width + gap}
+        decelerationRate="fast"
+        scrollEventThrottle={16}
+        onLayout={(event) => setLayoutWidth(event.nativeEvent.layout.width)}
+        onContentSizeChange={(w) => setContentWidth(w)}
+        onScroll={(event) => setOffset(event.nativeEvent.contentOffset.x)}
+        style={{ width: "100%" }}
+        contentContainerStyle={{ gap, paddingRight: space[16] }}
+      >
+        {items.map((child, index) => (
+          <View key={index} style={{ width }}>{renderNode(child)}</View>
+        ))}
+      </ScrollView>
+      {showLeft ? <EdgeFade side="left" color={theme.colors.surface0} /> : null}
+      {showRight ? <EdgeFade side="right" color={theme.colors.surface0} /> : null}
+    </View>
   );
 };
 

@@ -1,12 +1,8 @@
-import { Linking, Platform } from "react-native";
+import { openExternalUrl } from "@getpaseo/plugin/client";
 
-// This plugin typechecks without the DOM library. Declare only what this module uses.
-declare const window: { open(url: string, target: string, features: string): unknown };
-
+// Apre un URL http(s) con l'opener ufficiale della piattaforma (desktop: shell.openExternal via IPC, mobile: Linking).
+// window.open e Linking.openURL diretti NON si usano: nell'app desktop window.open non apre il browser di sistema
+// (SINTOMO: il pulsante «Apri su Google Maps» non fa nulla, 11 novembre 2026).
 export async function openExternal(url: string): Promise<void> {
-  if (Platform.OS === "web") {
-    window.open(url, "_blank", "noopener,noreferrer");
-    return;
-  }
-  await Linking.openURL(url);
+  await openExternalUrl(url);
 }

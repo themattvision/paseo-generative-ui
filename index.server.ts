@@ -6,7 +6,7 @@ import type { PluginHookContext, PluginServerContext } from "@getpaseo/plugin/se
 import { mcpProgram } from "./server/mcp-program.js";
 import { generativeUiSchema, maxGenerativeUiDataBytes } from "./shared/generative-ui.js";
 import { sanitizeGenerativeUiData } from "./shared/html.js";
-import { readRows, removeRows, saveRow } from "./server/persistence.js";
+import { loadAgentTokens, loadOrCreateBridgeToken, readRows, removeRows, saveAgentTokens, saveRow } from "./server/persistence.js";
 
 const bridgePort = 37621;
 
@@ -49,9 +49,11 @@ function reply(response: ServerResponse, status: number, body: Record<string, un
 
 export default function contribute(server: PluginServerContext) {
   const nodeCommand = resolveNodeCommand();
-  const token = randomBytes(32).toString("hex");
+  // Token del ponte e token agente restano gli stessi dopo un reload del plugin, altrimenti le chat già aperte
+  // perdono `show_ui` («Non autorizzato») finché non si riapre la sessione.
+  const token = loadOrCreateBridgeToken(() => randomBytes(32).toString("hex"));
   let paseo: PluginHookContext["paseo"] | undefined;
-  const agentTokens = new Map<string, string>();
+  const agentTokens = loadAgentTokens();
   const pendingRows = new Map<string, Map<string, ReturnType<typeof generativeUiSchema.parse>>>();
   async function flushPending(agentId: string) {
     const queue = pendingRows.get(agentId);
@@ -132,11 +134,26 @@ export default function contribute(server: PluginServerContext) {
   const removeSessionHook = server.before("agent.session_open", async ({ request }, context) => {
     paseo = context.paseo;
     const agentToken = request.env.GENERATIVE_UI_AGENT_TOKEN;
-    if (agentToken) agentTokens.set(agentToken, request.agentId);
-    for (const row of await readRows(request.agentId)) await append(request.agentId, row.id, row.data, false);
+    if (agentToken && agentTokens.get(agentToken) !== request.agentId) {
+      agentTokens.set(agentToken, request.agentId);
+      saveAgentTokens(agentTokens);
+    }
+    // Il replay dei blocchi salvati è best effort: se l'agente non è ancora caricato in memoria il daemon
+    // risponde "Unknown agent" e, lasciando propagare l'errore, fetch_agent_timeline_request fallisce e
+    // l'app (telefono incluso) non mostra la timeline della chat. Si salta e si riprova alla prossima apertura.
+    try {
+      for (const row of await readRows(request.agentId)) await append(request.agentId, row.id, row.data, false);
+    } catch {
+      // intenzionalmente ignorato: non deve mai bloccare l'apertura della sessione
+    }
     return request;
   });
-  const removeArchiveHook = server.on("agent.archived", ({ agent }) => { pendingRows.delete(agent.id); void removeRows(agent.id); });
+  const removeArchiveHook = server.on("agent.archived", ({ agent }) => {
+    pendingRows.delete(agent.id);
+    void removeRows(agent.id);
+    for (const [agentToken, agentId] of agentTokens) if (agentId === agent.id) agentTokens.delete(agentToken);
+    saveAgentTokens(agentTokens);
+  });
   const removeTurnEndHook = server.on("agent.turn_ended", async ({ agent }, context) => {
     paseo = context.paseo;
     await flushPending(agent.id);

@@ -4,6 +4,7 @@ import { Pressable, Text, View } from "react-native";
 import type { Action } from "../../shared/spec.js";
 import { ink, matteoYellow, space } from "./tokens.js";
 import { Squircle } from "./squircle.js";
+import { rememberPressedLabel } from "../pressed.js";
 
 export type UiContext = { theme: PluginTheme; compact: boolean; agentId: string; rowId: string; title?: string; onAction: (event: Action & { agentId: string }) => Promise<void> };
 
@@ -54,7 +55,7 @@ export function UiButton({ label, variant, action, disabled, context }: { label:
       accessibilityLabel={state === "sent" ? "Inviato" : state === "error" ? "Riprova invio" : label}
       accessibilityState={{ disabled: disabled || state === "sending" || (action.once && state === "sent") }}
       disabled={disabled || state === "sending" || (action.once && state === "sent")}
-      onPress={() => { setState("sending"); void onAction({ ...action, agentId: context.agentId }).then(() => setState("sent")).catch(() => setState("error")); }}
+      onPress={() => { rememberPressedLabel(label); setState("sending"); void onAction({ ...action, agentId: context.agentId }).then(() => setState("sent")).catch(() => setState("error")); }}
       style={({ pressed }) => ({ width: compact ? "100%" : undefined, opacity: disabled || state === "sending" || (action.once && state === "sent") ? 0.42 : pressed ? 0.78 : 1 })}
     >
       <Squircle radius={18} style={{ backgroundColor, borderColor, borderWidth: variant === "ghost" ? 0 : 1 }}>

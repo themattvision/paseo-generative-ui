@@ -178,9 +178,10 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "SearchImage",
-    description: "Foto trovata da sola su Wikipedia e Commons per una ricerca. query: 2-4 parole precise, per esempio il nome esatto di un luogo, monumento, piatto o prodotto. Se non trova nulla mostra un segnaposto.",
+    description: "Foto trovata da sola su Wikipedia e Commons per una ricerca. query: 2-4 parole precise, per esempio il nome esatto di un luogo, monumento, piatto o prodotto. fallback: 1-2 parole generiche sul tipo di cosa (per esempio pasticcini, tiramisù, cattedrale) usate quando la foto precisa non esiste, come accade per i locali piccoli. Se non trova nulla mostra un segnaposto.",
     props: z.object({
       query: z.string(),
+      fallback: z.string().optional(),
       aspectRatio: z.number().optional(),
       radius: z.union([z.string(), z.number()]).optional(),
       fit: z.enum(["cover", "contain"]).optional(),
