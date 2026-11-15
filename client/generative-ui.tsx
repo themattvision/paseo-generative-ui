@@ -1,11 +1,13 @@
 import type { PluginTimelineItemProps } from "@getpaseo/plugin/client";
+import type { PluginTheme } from "@getpaseo/plugin";
+import { useClaimedByFinale, type EmbeddedProps } from "./finale-bridge.js";
 import { useEffect, useMemo, useState } from "react";
 import { Platform, Text, View } from "react-native";
 import { openExternal } from "./web";
 import { usePaseo } from "@getpaseo/plugin/client";
 import { DocumentFrame, useToast } from "@getpaseo/plugin/client/ui";
 import { Renderer } from "./openui/react-lang";
-import type { GenerativeUiData } from "../shared/generative-ui.js";
+import { generativeUiClientSchema, type GenerativeUiData } from "../shared/generative-ui.js";
 import { OpenUiContext, openUiLibrary } from "./openui/library.js";
 import { parseKnownNode, type Action, type KnownSpecNode, type SpecNode, validateSpec } from "../shared/spec.js";
 import { actionMessage } from "../shared/action.js";
@@ -20,35 +22,52 @@ import { Form } from "./forms.js";
 export type GenerativeUiRendererProps = PluginTimelineItemProps<GenerativeUiData>;
 
 export function GenerativeUiItem({ item, theme, layout, agentId }: GenerativeUiRendererProps) {
+  // Finale può disegnare questo blocco dentro il box della risposta: qui la riga si ritira.
+  const claimed = useClaimedByFinale(item.data.rowId);
+  if (claimed) return null;
+  return <GenerativeUiContent data={item.data} theme={theme} layout={layout} agentId={agentId} />;
+}
+
+/** Stesso blocco, senza involucro, dentro il box della risposta di Finale (vedi client/finale-bridge.ts). */
+export function EmbeddedGenerativeUi({ data, theme, layout, agentId }: EmbeddedProps) {
+  const parsed = generativeUiClientSchema.safeParse(data);
+  if (!parsed.success) return null;
+  return <GenerativeUiContent data={parsed.data} theme={theme} layout={layout} agentId={agentId} embedded />;
+}
+
+function GenerativeUiContent({ data, theme, layout, agentId, embedded = false }: {
+  data: GenerativeUiData; theme: PluginTheme; layout: EmbeddedProps["layout"]; agentId: string; embedded?: boolean;
+}) {
   const toast = useToast();
   const paseo = usePaseo();
   const context = useMemo<UiContext>(() => ({
     theme,
     compact: layout.compact,
     agentId,
-    rowId: item.data.rowId ?? "riga-senza-id",
-    title: item.data.title,
+    rowId: data.rowId ?? "riga-senza-id",
+    title: data.title,
     onAction: async (event) => {
       try {
-        await paseo.agents.ref(agentId).send(actionMessage(event, item.data.rowId ?? "riga-senza-id", item.data.title, takePressedLabel()));
+        await paseo.agents.ref(agentId).send(actionMessage(event, data.rowId ?? "riga-senza-id", data.title, takePressedLabel()));
         // Niente toast di conferma: il feedback è il chip del bottone premuto che compare nella timeline.
       } catch (error) {
         toast.show("Invio non riuscito. Puoi riprovare.", { variant: "error" });
         throw error;
       }
     },
-  }), [agentId, item.data.rowId, item.data.title, layout.compact, paseo, theme, toast]);
-  if (item.data.openui !== undefined) return <OpenUiBlock title={item.data.title} openui={item.data.openui} context={context} />;
-  if (item.data.spec === undefined) return null;
-  return <GenerativeUiBlock title={item.data.title} spec={item.data.spec} context={context} />;
+  }), [agentId, data.rowId, data.title, layout.compact, paseo, theme, toast]);
+  if (data.openui !== undefined) return <OpenUiBlock title={data.title} openui={data.openui} context={context} embedded={embedded} />;
+  if (data.spec === undefined) return null;
+  return <GenerativeUiBlock title={data.title} spec={data.spec} context={context} embedded={embedded} />;
 }
 
 // Blocco OpenUI Lang: stesso involucro del formato classico, contenuto dalla libreria client/openui/library.tsx.
-function OpenUiBlock({ title, openui, context }: { title?: string; openui: string; context: UiContext }) {
+function OpenUiBlock({ title, openui, context, embedded = false }: { title?: string; openui: string; context: UiContext; embedded?: boolean }) {
   // Nessun involucro: il contenuto sta direttamente nella chat, come nel riferimento open-intelligent-ui.
+  // Incorporato nel box di Finale non ha nemmeno il respiro verticale: lo dà il box.
   const toast = useToast();
   return (
-    <View style={{ width: "100%", paddingVertical: space[8], gap: context.compact ? space[8] : space[16] }}>
+    <View style={{ width: "100%", paddingVertical: embedded ? 0 : space[8], gap: context.compact ? space[8] : space[16] }}>
       {title && !openui.includes(JSON.stringify(title)) ? <UiText variant="heading" context={context}>{title}</UiText> : null}
       <OpenUiContext.Provider value={context}>
           <Renderer
@@ -77,9 +96,16 @@ function OpenUiBlock({ title, openui, context }: { title?: string; openui: strin
   );
 }
 
-export function GenerativeUiBlock({ title, spec, context }: { title?: string; spec: SpecNode; context: UiContext }) {
+export function GenerativeUiBlock({ title, spec, context, embedded = false }: { title?: string; spec: SpecNode; context: UiContext; embedded?: boolean }) {
   const validation = validateSpec(spec);
   const padding = context.compact ? space[12] : space[24];
+  // Incorporato nel box di Finale: niente contenitore con bordo, lo è già il box della risposta.
+  if (embedded) return (
+    <View style={{ width: "100%", gap: context.compact ? space[8] : space[16] }}>
+      {title ? <UiText variant="heading" context={context}>{title}</UiText> : null}
+      {!validation.ok ? <SpecProblem message={validation.message} context={context} /> : <RenderNode node={spec} context={context} />}
+    </View>
+  );
   return (
     <Squircle radius={28} style={{ backgroundColor: context.theme.colors.surface0, borderColor: context.theme.colors.border, borderWidth: 1 }}>
       <View style={{ padding, gap: context.compact ? space[8] : space[16] }}>

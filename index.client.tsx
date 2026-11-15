@@ -1,6 +1,7 @@
 import type { PluginClientContext } from "@getpaseo/plugin/client";
 import { ActionChip } from "./client/action-chip.js";
-import { GenerativeUiItem } from "./client/generative-ui.js";
+import { EmbeddedGenerativeUi, GenerativeUiItem } from "./client/generative-ui.js";
+import { installIntelligentUiBridge } from "./client/finale-bridge.js";
 import { actionChipSchema } from "./shared/action-chip.js";
 import { parseActionLabel } from "./shared/action.js";
 import { generativeUiClientSchema } from "./shared/generative-ui.js";
@@ -25,5 +26,7 @@ export default function contribute(client: PluginClientContext) {
       return { items: [{ type: "plugin", id: item.messageId ?? item.clientMessageId, kind: "ui-action", version: 1, data: { label } }] };
     },
   });
-  return () => { removeRenderer(); removeChipRenderer(); removeChipTransformer(); };
+  // Fusione con Finale: espone il blocco incorporabile (vedi client/finale-bridge.ts).
+  const removeBridge = installIntelligentUiBridge(EmbeddedGenerativeUi);
+  return () => { removeRenderer(); removeChipRenderer(); removeChipTransformer(); removeBridge(); };
 }
