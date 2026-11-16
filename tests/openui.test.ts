@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { embeddedImagePattern, generativeUiSchema } from "../shared/generative-ui.js";
 import { checkOpenUi, maxOpenUiChars } from "../shared/openui-signatures.js";
+import { embedLocalImages } from "../server/local-images.js";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const legacy = {
   title: "Stato",
@@ -61,5 +65,22 @@ assert.equal(withPhotoResult.ok, true, "un openui con foto incorporata da circa 
 assert.equal(withPhotoResult.ok && withPhotoResult.openui, withPhoto, "il testo restituito deve contenere il data URI intero");
 assert.equal(checkWithEmbeddedImages("x".repeat(maxOpenUiChars + 1)).ok, false, "un testo oltre 20000 caratteri senza immagini deve essere rifiutato");
 assert.equal(checkWithEmbeddedImages(`${photoUri}${"x".repeat(maxOpenUiChars + 1)}`).ok, false, "il limite di 20000 caratteri vale per il testo anche con una foto");
+
+// Immagini locali: il bridge le trasforma in data URI (server/local-images.ts). Il PNG di prova è temporaneo e si cancella.
+const tinyPng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
+const localDir = mkdtempSync(join(tmpdir(), "genui-test-"));
+try {
+  const localFile = join(localDir, "prova.png");
+  writeFileSync(localFile, tinyPng);
+  const embeddedLocal = embedLocalImages(`img = Image("file://${localFile}", "Prova")`);
+  assert.match(embeddedLocal, /Image\("data:image\/png;base64,[A-Za-z0-9+/=]+", "Prova"\)/, "un file locale deve diventare un data URI");
+  assert.throws(
+    () => embedLocalImages('img = Image("file:///tmp/non-esiste-genui.png", "x")'),
+    (error: unknown) => error instanceof Error && error.message.startsWith("Immagine non trovata"),
+    "un file inesistente deve dare Immagine non trovata",
+  );
+} finally {
+  rmSync(localDir, { recursive: true, force: true });
+}
 
 console.log("openui tests passed");

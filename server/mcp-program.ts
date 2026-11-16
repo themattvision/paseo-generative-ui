@@ -26,53 +26,10 @@ const tool = {
   },
 };
 const failure = (message) => ({ content: [{ type: "text", text: message }], isError: true });
-// IMMAGINI LOCALI (16 novembre 2026): il telefono non legge i file del Mac, quindi un Image("file:///...") o con
-// percorso assoluto veniva mostrato come segnaposto vuoto. Qui, dove il file esiste, lo si legge, lo si rimpicciolisce
-// (sips, solo macOS) e lo si incorpora come data URI; il bridge applica il tetto sulle immagini.
-const maxImageBytes = 260 * 1024;
-const mimeByExtension = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp" };
-async function loadLocalImage(rawPath) {
-  const fs = await import("node:fs");
-  const os = await import("node:os");
-  const path = await import("node:path");
-  const { execFileSync } = await import("node:child_process");
-  let file = rawPath.startsWith("file://") ? rawPath.slice(7) : rawPath;
-  if (!fs.existsSync(file)) { try { file = decodeURIComponent(file); } catch {} }
-  if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
-    throw new Error("Immagine non trovata: " + file + ". Il telefono non legge il Mac: passa un file che esiste su questo computer.");
-  }
-  const extension = path.extname(file).slice(1).toLowerCase();
-  const original = fs.readFileSync(file);
-  if (mimeByExtension[extension] && original.length <= maxImageBytes) {
-    return "data:" + mimeByExtension[extension] + ";base64," + original.toString("base64");
-  }
-  const folder = fs.mkdtempSync(path.join(os.tmpdir(), "genui-img-"));
-  try {
-    for (const [size, quality] of [[960, 70], [720, 60], [540, 50], [400, 45]]) {
-      const target = path.join(folder, "out-" + size + ".jpg");
-      try {
-        execFileSync("/usr/bin/sips", ["-s", "format", "jpeg", "-s", "formatOptions", String(quality), "-Z", String(size), file, "--out", target], { stdio: "ignore", timeout: 20000 });
-      } catch { continue; }
-      const resized = fs.readFileSync(target);
-      if (resized.length <= maxImageBytes) return "data:image/jpeg;base64," + resized.toString("base64");
-    }
-  } finally {
-    fs.rmSync(folder, { recursive: true, force: true });
-  }
-  throw new Error("Impossibile rimpicciolire l'immagine " + file + " sotto i 260 KiB: usa un file più piccolo.");
-}
-async function embedLocalImages(text) {
-  const pattern = /Image\(\s*"((?:file:\/\/)?\/[^"]*)"/g;
-  const found = new Map();
-  for (const match of text.matchAll(pattern)) {
-    if (!found.has(match[1])) found.set(match[1], await loadLocalImage(match[1]));
-  }
-  let result = text;
-  for (const [rawPath, uri] of found) result = result.split('"' + rawPath + '"').join('"' + uri + '"');
-  return result;
-}
+// Le immagini locali (Image("/percorso") o file://) NON si incorporano qui: lo fa il bridge (server/local-images.ts),
+// così vale anche per le chat già aperte, che hanno ancora il programma MCP vecchio.
 async function callTool(args) {
-  let { title, spec, openui, id } = args ?? {};
+  const { title, spec, openui, id } = args ?? {};
   if (!bridgeUrl || !bridgeToken || !agentToken) return failure("Bridge Generative UI non configurato per questo agente.");
   if (title !== undefined && typeof title !== "string") return failure("title deve essere una stringa.");
   if (spec !== undefined && openui !== undefined) return failure("Passa spec oppure openui, non entrambi.");
@@ -82,7 +39,6 @@ async function callTool(args) {
   if (id !== undefined && typeof id !== "string") return failure("id deve essere una stringa.");
   if (Buffer.byteLength(JSON.stringify({ title, spec, openui }), "utf8") > maxBytes) return failure("I dati dell'interfaccia superano il limite di 64 KiB.");
   try {
-    if (typeof openui === "string") openui = await embedLocalImages(openui);
     const response = await fetch(bridgeUrl, {
       method: "POST",
       headers: { authorization: "Bearer " + bridgeToken, "content-type": "application/json" },

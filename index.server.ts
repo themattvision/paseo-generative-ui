@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { join } from "node:path";
 import type { PluginHookContext, PluginServerContext } from "@getpaseo/plugin/server";
+import { embedLocalImages } from "./server/local-images.js";
 import { mcpProgram } from "./server/mcp-program.js";
 import {
   embeddedImagePattern,
@@ -94,6 +95,8 @@ export default function contribute(server: PluginServerContext) {
       // Errore leggibile per l'agente (es. riga e riferimento OpenUI non risolti), non il JSON grezzo di Zod.
       // Le immagini incorporate (data URI) si tolgono prima dei controlli di testo e si rimettono dopo: i limiti di
       // 20000 caratteri e 64 KiB riguardano il testo, le immagini hanno un tetto a parte.
+      // File locali (Image("/percorso") o file://) → data URI, qui nel bridge così vale anche per le chat già aperte.
+      if (typeof data.openui === "string") data.openui = embedLocalImages(data.openui);
       const embedded: string[] = [];
       if (typeof data.openui === "string") {
         const textOnly: string = data.openui.replace(embeddedImagePattern, (uri) => {
