@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Image, View } from "react-native";
+import { Image, Pressable, View, type ViewStyle } from "react-native";
 import { Icon as PaseoIcon } from "@getpaseo/plugin/client/ui";
 import { Squircle } from "../ds/squircle.js";
+import { ImageViewer } from "./image-viewer.js";
 import { radiusOf, useUi, type Renderer } from "./base.js";
 
 // Icone Lucide per nome e foto (Image con URL, SearchImage con ricerca su Wikipedia e Commons).
@@ -136,23 +137,36 @@ function PhotoBlock({ src, query, fallback, props }: { src?: string; query: stri
   const found = usePhotos(query, fallback, !direct || failed.includes(direct));
   const candidates = [direct, ...found.photos].filter((url): url is string => Boolean(url) && !failed.includes(url as string));
   const url = candidates[0];
+  const [open, setOpen] = useState(false);
   const ratio = typeof props.aspectRatio === "number" && props.aspectRatio > 0.2 && props.aspectRatio < 5 ? props.aspectRatio : 1.5;
   return (
-    <Squircle radius={radiusOf(props.radius, 16)} style={{ backgroundColor: theme.colors.surface1 }}>
-      <View style={{ width: "100%", aspectRatio: ratio, alignItems: "center", justifyContent: "center" }}>
-        {url ? (
-          <Image
-            source={{ uri: url }}
-            accessibilityLabel={query}
-            resizeMode={props.fit === "contain" ? "contain" : "cover"}
-            onError={() => setFailed((list) => [...list, url])}
-            style={{ position: "absolute", width: "100%", height: "100%" }}
-          />
-        ) : (
-          <PaseoIcon name="Image" size={28} color={theme.colors.foregroundMuted} />
-        )}
-      </View>
-    </Squircle>
+    <>
+      {/* Un tocco apre la foto a schermo intero con zoom (image-viewer.tsx). */}
+      <Pressable
+        accessibilityRole="imagebutton"
+        accessibilityLabel={query ? `${query}, apri a schermo intero` : "Apri la foto a schermo intero"}
+        disabled={!url}
+        onPress={() => setOpen(true)}
+        style={{ width: "100%", ...(url ? ({ cursor: "zoom-in" } as unknown as ViewStyle) : {}) }}
+      >
+        <Squircle radius={radiusOf(props.radius, 16)} style={{ backgroundColor: theme.colors.surface1 }}>
+          <View style={{ width: "100%", aspectRatio: ratio, alignItems: "center", justifyContent: "center" }}>
+            {url ? (
+              <Image
+                source={{ uri: url }}
+                accessibilityLabel={query}
+                resizeMode={props.fit === "contain" ? "contain" : "cover"}
+                onError={() => setFailed((list) => [...list, url])}
+                style={{ position: "absolute", width: "100%", height: "100%" }}
+              />
+            ) : (
+              <PaseoIcon name="Image" size={28} color={theme.colors.foregroundMuted} />
+            )}
+          </View>
+        </Squircle>
+      </Pressable>
+      {open && url ? <ImageViewer uri={url} label={query} onClose={() => setOpen(false)} /> : null}
+    </>
   );
 }
 
