@@ -7,7 +7,8 @@ import { radiusOf, useUi, type Renderer } from "./base.js";
 // Icone Lucide per nome e foto (Image con URL, SearchImage con ricerca su Wikipedia e Commons).
 // Nessun riquadro e nessun bordo: la foto è il contenuto, come nel riferimento open-intelligent-ui.
 
-const isHttpUrl = (value: string) => /^https?:\/\//i.test(value);
+// Foto da URL http(s) oppure immagine incorporata dal server (data URI, per i file locali del Mac).
+const isHttpUrl = (value: string) => /^(https?:\/\/|data:image\/)/i.test(value);
 
 // L'SDK Paseo vuole i nomi Lucide in PascalCase ("MapPin"), mentre gli agenti scrivono kebab-case ("map-pin"):
 // un nome non riconosciuto non disegna NULLA, senza errori (SINTOMO: icone e segnaposto foto invisibili).

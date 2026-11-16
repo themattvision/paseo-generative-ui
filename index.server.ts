@@ -4,7 +4,14 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { join } from "node:path";
 import type { PluginHookContext, PluginServerContext } from "@getpaseo/plugin/server";
 import { mcpProgram } from "./server/mcp-program.js";
-import { generativeUiSchema, maxGenerativeUiDataBytes } from "./shared/generative-ui.js";
+import {
+  embeddedImagePattern,
+  generativeUiSchema,
+  maxEmbeddedImagesBytes,
+  maxGenerativeUiBodyBytes,
+  maxGenerativeUiDataBytes,
+} from "./shared/generative-ui.js";
+import { maxOpenUiChars } from "./shared/openui-signatures.js";
 import { sanitizeGenerativeUiData } from "./shared/html.js";
 import { loadAgentTokens, loadOrCreateBridgeToken, readRows, removeRows, saveAgentTokens, saveRow } from "./server/persistence.js";
 
@@ -24,7 +31,7 @@ function readJson(request: IncomingMessage): Promise<unknown> {
     let size = 0;
     request.on("data", (chunk: Buffer) => {
       size += chunk.length;
-      if (size > maxGenerativeUiDataBytes + 8_192) {
+      if (size > maxGenerativeUiBodyBytes) {
         reject(new Error("Corpo della richiesta troppo grande."));
         request.destroy();
         return;
@@ -85,12 +92,30 @@ export default function contribute(server: PluginServerContext) {
       if (id !== undefined && (typeof id !== "string" || !id)) throw new Error("id non valido.");
       const rowId = typeof id === "string" ? id : `generative-ui-${randomBytes(8).toString("hex")}`;
       // Errore leggibile per l'agente (es. riga e riferimento OpenUI non risolti), non il JSON grezzo di Zod.
+      // Le immagini incorporate (data URI) si tolgono prima dei controlli di testo e si rimettono dopo: i limiti di
+      // 20000 caratteri e 64 KiB riguardano il testo, le immagini hanno un tetto a parte.
+      const embedded: string[] = [];
+      if (typeof data.openui === "string") {
+        const textOnly: string = data.openui.replace(embeddedImagePattern, (uri) => {
+          embedded.push(uri);
+          return `data:image/jpeg;base64,STUB${embedded.length - 1}END`;
+        });
+        data.openui = textOnly;
+        if (textOnly.length > maxOpenUiChars) throw new Error(`Il testo OpenUI supera il limite di ${maxOpenUiChars} caratteri.`);
+      }
+      if (embedded.reduce((total, uri) => total + uri.length, 0) > maxEmbeddedImagesBytes) {
+        throw new Error("Le immagini incorporate superano il limite di 900 KiB: usa foto più piccole.");
+      }
       const checked = generativeUiSchema.safeParse(data);
       if (!checked.success) throw new Error(checked.error.issues[0]?.message ?? "Dati dell'interfaccia non validi.");
-      const parsed = sanitizeGenerativeUiData({ ...checked.data, rowId });
-      if (Buffer.byteLength(JSON.stringify(parsed), "utf8") > maxGenerativeUiDataBytes) {
+      const clean = sanitizeGenerativeUiData({ ...checked.data, rowId });
+      if (Buffer.byteLength(JSON.stringify(clean), "utf8") > maxGenerativeUiDataBytes) {
         throw new Error("I dati dell'interfaccia superano il limite di 64 KiB.");
       }
+      const parsed =
+        embedded.length > 0 && typeof clean.openui === "string"
+          ? { ...clean, openui: clean.openui.replace(/data:image\/jpeg;base64,STUB(\d+)END/g, (_match, index) => embedded[Number(index)] ?? "") }
+          : clean;
       // Il blocco NON si aggiunge subito: una riga inserita fra le chiamate agli strumenti finisce nel
       // gruppo di lavoro che il telefono tiene chiuso. Si accoda e si aggiunge a fine turno (agent.turn_ended),
       // cioè dopo la risposta finale. Con lo stesso id l'ultima versione sostituisce la precedente.

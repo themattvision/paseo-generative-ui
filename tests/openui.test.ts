@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { generativeUiSchema } from "../shared/generative-ui.js";
+import { embeddedImagePattern, generativeUiSchema } from "../shared/generative-ui.js";
 import { checkOpenUi, maxOpenUiChars } from "../shared/openui-signatures.js";
 
 const legacy = {
@@ -39,5 +39,27 @@ assert.ok(!noRootCheck.ok && noRootCheck.message.includes("root"), "il messaggio
 const tooLong = "x".repeat(maxOpenUiChars + 1);
 assert.equal(generativeUiSchema.safeParse({ openui: tooLong }).success, false, "un testo oltre 20000 caratteri deve fallire generativeUiSchema");
 assert.equal(checkOpenUi(tooLong).ok, false, "un testo oltre 20000 caratteri deve fallire checkOpenUi");
+
+// Stessa logica di index.server.ts: i data URI si tolgono prima dei controlli di testo e si rimettono dopo.
+function checkWithEmbeddedImages(openui: string) {
+  const embedded: string[] = [];
+  const textOnly = openui.replace(embeddedImagePattern, (uri) => {
+    embedded.push(uri);
+    return `data:image/jpeg;base64,STUB${embedded.length - 1}END`;
+  });
+  if (textOnly.length > maxOpenUiChars) return { ok: false as const };
+  const checked = generativeUiSchema.safeParse({ openui: textOnly });
+  if (!checked.success || typeof checked.data.openui !== "string") return { ok: false as const };
+  const restored = checked.data.openui.replace(/data:image\/jpeg;base64,STUB(\d+)END/g, (_match, index) => embedded[Number(index)] ?? "");
+  return { ok: true as const, openui: restored };
+}
+
+const photoUri = `data:image/jpeg;base64,${Buffer.alloc(110 * 1024, 7).toString("base64")}`;
+const withPhoto = `root = Col([img], 12)\nimg = Image("${photoUri}", "Home Switch")`;
+const withPhotoResult = checkWithEmbeddedImages(withPhoto);
+assert.equal(withPhotoResult.ok, true, "un openui con foto incorporata da circa 150 KiB deve passare");
+assert.equal(withPhotoResult.ok && withPhotoResult.openui, withPhoto, "il testo restituito deve contenere il data URI intero");
+assert.equal(checkWithEmbeddedImages("x".repeat(maxOpenUiChars + 1)).ok, false, "un testo oltre 20000 caratteri senza immagini deve essere rifiutato");
+assert.equal(checkWithEmbeddedImages(`${photoUri}${"x".repeat(maxOpenUiChars + 1)}`).ok, false, "il limite di 20000 caratteri vale per il testo anche con una foto");
 
 console.log("openui tests passed");
