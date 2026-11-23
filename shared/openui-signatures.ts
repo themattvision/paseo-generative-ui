@@ -96,6 +96,16 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
     }),
   },
   {
+    name: "AgentLink",
+    description: "Bottone che apre la chat di un altro agente Paseo (agentId restituito da create_agent o list_agents). Nessun messaggio all'agente, solo navigazione.",
+    props: z.object({
+      label: z.string(),
+      agentId: z.string(),
+      variant: z.enum(["solid", "outline", "soft", "ghost"]).optional(),
+      icon: z.string().optional(),
+    }),
+  },
+  {
     name: "Table",
     description: "Tabella. Ogni riga elenca le celle nell'ordine delle colonne.",
     props: z.object({
@@ -167,7 +177,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "Image",
-    description: "Foto da un URL http(s). aspectRatio è larghezza su altezza, per esempio 1.5.",
+    description: "Foto da un URL http(s) oppure da un file del Mac (percorso assoluto o file://, incorporato dal plugin). aspectRatio è larghezza su altezza, per esempio 1.5.",
     props: z.object({
       src: z.string(),
       alt: z.string(),

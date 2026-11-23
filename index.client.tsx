@@ -1,5 +1,7 @@
 import type { PluginClientContext } from "@getpaseo/plugin/client";
 import { ActionChip } from "./client/action-chip.js";
+import { AGENT_SCREEN_ID, installAgentNav } from "./client/agent-nav.js";
+import { AgentRedirect } from "./client/agent-redirect.js";
 import { EmbeddedGenerativeUi, GenerativeUiItem } from "./client/generative-ui.js";
 import { installIntelligentUiBridge } from "./client/finale-bridge.js";
 import { actionChipSchema } from "./shared/action-chip.js";
@@ -28,5 +30,8 @@ export default function contribute(client: PluginClientContext) {
   });
   // Fusione con Finale: espone il blocco incorporabile (vedi client/finale-bridge.ts).
   const removeBridge = installIntelligentUiBridge(EmbeddedGenerativeUi);
-  return () => { removeRenderer(); removeChipRenderer(); removeChipTransformer(); removeBridge(); };
+  // AgentLink: schermata di passaggio che apre la chat di un altro agente (vedi client/agent-nav.ts).
+  const removeAgentScreen = client.addScreen({ id: AGENT_SCREEN_ID, title: "Apri chat", Component: AgentRedirect });
+  const removeAgentNav = installAgentNav((input) => client.openScreen(input));
+  return () => { removeRenderer(); removeChipRenderer(); removeChipTransformer(); removeBridge(); removeAgentScreen(); removeAgentNav(); };
 }

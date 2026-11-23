@@ -35,7 +35,7 @@ function toOptions(raw: unknown): Option[] {
 function FieldLabel({ text }: { text?: string }) {
   const { theme } = useUi();
   if (!text) return null;
-  return <Text style={{ color: theme.colors.foregroundMuted, fontSize: 13, lineHeight: 18, fontWeight: "500" }}>{text}</Text>;
+  return <Text selectable style={{ color: theme.colors.foregroundMuted, fontSize: 13, lineHeight: 18, fontWeight: "500" }}>{text}</Text>;
 }
 
 const Input: Renderer = ({ props }) => {

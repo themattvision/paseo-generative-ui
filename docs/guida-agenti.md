@@ -20,6 +20,14 @@ PREFERISCI `show_ui({ title?, openui, id? })` (dal 9 novembre 2026): `openui` è
 
 Bottoni e form ti arrivano come messaggio: `[Azione UI] id=<azione> riga=<riga> titolo=<titolo> valori=<JSON>`. Rispondi all'azione senza chiedere di nuovo gli stessi dati. Per default un controllo si può usare una volta (`once: true`); `once: false` per azioni ripetibili.
 
+## Aprire un'anteprima a schermo intero (Finale iPhone)
+
+Un'anteprima si mostra con un bottone, mai da sola: `Button("Apri l'anteprima", @OpenUrl("paseo-preview:///percorso/assoluto/pagina.html"), "solid")`. Su Finale iPhone si apre la WebView nativa dell'app a tutto schermo (pulsante di chiusura in alto a destra); un URL `https` nello stesso bottone apre la stessa WebView invece di Safari. Regole per il file:
+- la pagina è HTML autonomo (stili e script inline, niente rete, font o immagini remoti: la sandbox li blocca);
+- sta DENTRO la cartella del progetto della chat (l'iPhone legge il file dal daemon): per i file di prova usa `.dev/esempi/` nella radice del progetto;
+- il percorso è quello assoluto sul Mac, dopo `paseo-preview://` (quindi tre barre in tutto).
+Dal computer lo stesso bottone non apre ancora nulla (resta da fare): se non sei sicuro del client, cita anche il percorso del file nel testo.
+
 ## Regole di aspetto
 
 Il plugin applica da solo squircle, colori e spaziature di Matteo. Tu limiti il contenuto:

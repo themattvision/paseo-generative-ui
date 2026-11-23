@@ -24,7 +24,7 @@ export function UiText({ children, variant = "body", context }: { children: stri
       fontFamily: mono ? "monospace" : undefined,
     };
   }, [compact, theme, variant]);
-  return <Text style={styles}>{children}</Text>;
+  return <Text selectable style={styles}>{children}</Text>;
 }
 
 export function Card({ title, tone = "default", children, context }: { title?: string; tone?: "default" | "accent"; children: React.ReactNode; context: UiContext }) {

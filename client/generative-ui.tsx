@@ -79,7 +79,10 @@ function OpenUiBlock({ title, openui, context, embedded = false }: { title?: str
                 // Link esterno: apertura diretta, nessun messaggio all'agente. Stesso helper del pulsante del saluto
                 // (window.open sul web, Linking altrove). L'errore non si ingoia: toast visibile.
                 const url = String(event.params.url ?? "");
-                if (!/^https?:\/\//i.test(url)) {
+                // Oltre a http(s) passa lo schema paseo-preview://: su Finale iPhone apre il file del progetto
+                // nell'anteprima a schermo intero dell'app (la gestisce l'openExternalUrl dell'app, vedi
+                // paseo-finale-ios/packages/app/src/finale/anteprima).
+                if (!/^(https?|paseo-preview):\/\//i.test(url)) {
                   toast.show("Link non valido", { variant: "error" });
                   return;
                 }
