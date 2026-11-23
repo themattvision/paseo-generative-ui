@@ -22,7 +22,7 @@ export function AgentRedirect({ theme, host, params, navigation }: PluginScreenP
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space[12], padding: space[24], backgroundColor: colors.surface0 }}>
       <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "600" }}>
-        {ready ? "Apro la chat dell'agente" : "Non riesco ad aprire la chat da qui"}
+        {ready ? "Opening the agent chat" : "Cannot open the chat from here"}
       </Text>
       {ready ? (
         <Pressable

@@ -25,7 +25,7 @@ export const generativeUiSchema = generativeUiShape.superRefine((data, context) 
   const hasSpec = data.spec !== undefined;
   const hasOpenUi = data.openui !== undefined;
   if (hasSpec === hasOpenUi) {
-    context.addIssue({ code: "custom", path: [], message: "Passa spec oppure openui, non entrambi e non nessuno dei due." });
+    context.addIssue({ code: "custom", path: [], message: "Pass spec or openui, not both and not neither." });
     return;
   }
   if (data.spec !== undefined) {
@@ -44,7 +44,7 @@ export const generativeUiClientSchema = generativeUiShape.superRefine((data, con
   const hasSpec = data.spec !== undefined;
   const hasOpenUi = data.openui !== undefined;
   if (hasSpec === hasOpenUi) {
-    context.addIssue({ code: "custom", path: [], message: "Passa spec oppure openui, non entrambi e non nessuno dei due." });
+    context.addIssue({ code: "custom", path: [], message: "Pass spec or openui, not both and not neither." });
     return;
   }
   if (data.spec !== undefined) {

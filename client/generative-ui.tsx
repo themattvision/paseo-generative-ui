@@ -4,7 +4,8 @@ import { useClaimedByFinale, type EmbeddedProps } from "./finale-bridge.js";
 import { useEffect, useMemo, useState } from "react";
 import { Platform, Text, View } from "react-native";
 import { openExternal } from "./web";
-import { usePaseo } from "@getpaseo/plugin/client";
+import { usePaseo, useSettings } from "@getpaseo/plugin/client";
+import { preferences } from "../shared/preferences.js";
 import { DocumentFrame, useToast } from "@getpaseo/plugin/client/ui";
 import { Renderer } from "./openui/react-lang";
 import { generativeUiClientSchema, type GenerativeUiData } from "../shared/generative-ui.js";
@@ -15,7 +16,7 @@ import { takePressedLabel } from "./pressed.js";
 import { documentHtml } from "../shared/html.js";
 import { Badge, Card, CheckGlyph, UiButton, UiText, type UiContext } from "./ds/components.js";
 import { Squircle } from "./ds/squircle.js";
-import { ink, matteoYellow, space } from "./ds/tokens.js";
+import { applyLook, look, space } from "./ds/tokens.js";
 import { DataTable, Chart } from "./data-views.js";
 import { Form } from "./forms.js";
 
@@ -40,6 +41,9 @@ function GenerativeUiContent({ data, theme, layout, agentId, embedded = false }:
 }) {
   const toast = useToast();
   const paseo = usePaseo();
+  // Appearance comes from Settings → Plugins → Generative UI and the Paseo theme; set before children render.
+  const prefs = useSettings(preferences);
+  applyLook(prefs.status === "ready" ? prefs.values : undefined, theme);
   const context = useMemo<UiContext>(() => ({
     theme,
     compact: layout.compact,
@@ -51,7 +55,7 @@ function GenerativeUiContent({ data, theme, layout, agentId, embedded = false }:
         await paseo.agents.ref(agentId).send(actionMessage(event, data.rowId ?? "riga-senza-id", data.title, takePressedLabel()));
         // Niente toast di conferma: il feedback è il chip del bottone premuto che compare nella timeline.
       } catch (error) {
-        toast.show("Invio non riuscito. Puoi riprovare.", { variant: "error" });
+        toast.show("Sending failed. You can try again.", { variant: "error" });
         throw error;
       }
     },
@@ -83,10 +87,10 @@ function OpenUiBlock({ title, openui, context, embedded = false }: { title?: str
                 // nell'anteprima a schermo intero dell'app (la gestisce l'openExternalUrl dell'app, vedi
                 // paseo-finale-ios/packages/app/src/finale/anteprima).
                 if (!/^(https?|paseo-preview):\/\//i.test(url)) {
-                  toast.show("Link non valido", { variant: "error" });
+                  toast.show("Invalid link", { variant: "error" });
                   return;
                 }
-                openExternal(url).catch(() => toast.show("Non sono riuscito ad aprire il link", { variant: "error" }));
+                openExternal(url).catch(() => toast.show("Could not open the link", { variant: "error" }));
                 return;
               }
               if (event.type === "continue_conversation") {
@@ -121,7 +125,7 @@ export function GenerativeUiBlock({ title, spec, context, embedded = false }: { 
 
 function RenderNode({ node, context }: { node: SpecNode; context: UiContext }) {
   const known = parseKnownNode(node);
-  if (!known) return <SpecProblem message={`Componente non supportato: ${node.type}`} context={context} />;
+  if (!known) return <SpecProblem message={`Unsupported component: ${node.type}`} context={context} />;
   return <KnownNode node={known} context={context} />;
 }
 
@@ -149,7 +153,7 @@ function KnownNode({ node, context }: { node: KnownSpecNode; context: UiContext 
     case "multiselect":
     case "switch":
     case "slider":
-    case "radio": return <SpecProblem message={`Il campo ${node.type} deve stare dentro un form.`} context={context} />;
+    case "radio": return <SpecProblem message={`The ${node.type} field must be inside a form.`} context={context} />;
   }
 }
 
@@ -162,7 +166,7 @@ function Html({ node, context }: { node: Extract<KnownSpecNode, { type: "html" }
     setUrl(next);
     return () => URL.revokeObjectURL(next);
   }, [context.theme.colors.foreground, context.theme.colors.surface0, node.html]);
-  if (Platform.OS !== "web") return <SpecProblem message="L’HTML libero è disponibile nel client web. Su mobile questo runtime non espone una scrittura file locale sicura." context={context} />;
+  if (Platform.OS !== "web") return <SpecProblem message="Free HTML is available in the web client. On mobile this runtime does not expose safe local file writing." context={context} />;
   if (!url) return <View style={{ height: node.height }} />;
   return <View style={{ height: node.height, width: "100%", overflow: "hidden", borderRadius: 16 }}><DocumentFrame url={url} testID="generative-ui-html" /></View>;
 }
@@ -183,7 +187,7 @@ function List({ node, context }: { node: Extract<KnownSpecNode, { type: "list" }
 }
 
 function Progress({ node, context }: { node: Extract<KnownSpecNode, { type: "progress" }>; context: UiContext }) {
-  return <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: node.value }} style={{ gap: space[4], width: "100%" }}>{node.label ? <UiText variant="caption" context={context}>{node.label}</UiText> : null}<View style={{ height: 8, width: "100%", overflow: "hidden", borderRadius: 4, backgroundColor: context.theme.colors.surface2 }}><View style={{ height: "100%", width: `${node.value}%`, backgroundColor: ink, borderRightWidth: 2, borderRightColor: matteoYellow }} /></View></View>;
+  return <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: node.value }} style={{ gap: space[4], width: "100%" }}>{node.label ? <UiText variant="caption" context={context}>{node.label}</UiText> : null}<View style={{ height: 8, width: "100%", overflow: "hidden", borderRadius: 4, backgroundColor: context.theme.colors.surface2 }}><View style={{ height: "100%", width: `${node.value}%`, backgroundColor: look.fill, borderRightWidth: 2, borderRightColor: look.glyph }} /></View></View>;
 }
 
 function SpecProblem({ message, context }: { message: string; context: UiContext }) {

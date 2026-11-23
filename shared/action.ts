@@ -6,7 +6,7 @@ const PREFIX = "[Azione UI]";
 // al posto del messaggio tecnico. Il resto del testo resta per l'agente.
 export function actionMessage(action: Action, rowId: string, title?: string, label?: string): string {
   const head = label ? `${PREFIX} etichetta=${JSON.stringify(label)}` : PREFIX;
-  return `${head} id=${action.id} riga=${rowId} titolo=${title ?? "senza titolo"} valori=${JSON.stringify(action.payload ?? {})}`;
+  return `${head} id=${action.id} riga=${rowId} titolo=${title ?? "untitled"} valori=${JSON.stringify(action.payload ?? {})}`;
 }
 
 // Restituisce l'etichetta da mostrare se il testo è un messaggio di azione UI, altrimenti undefined.
@@ -31,5 +31,5 @@ export function parseActionLabel(text: string): string | undefined {
       // niente
     }
   }
-  return "Azione inviata";
+  return "Action sent";
 }

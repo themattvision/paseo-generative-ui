@@ -2,7 +2,7 @@ import { OPENUI_PROMPT } from "../shared/openui-prompt.generated.js";
 
 // Il programma MCP gira come script inline (node --eval) e non può importare moduli: la descrizione
 // con il prompt OpenUI viene costruita qui, nel modulo server, e inserita come stringa JSON.
-const showUiDescription = `Inserisce o aggiorna un blocco di interfaccia nella timeline della chat.\n\n${OPENUI_PROMPT}`;
+const showUiDescription = `Adds or updates an interface block in the chat timeline.\n\n${OPENUI_PROMPT}`;
 
 export const mcpProgram = String.raw`
 const maxBytes = 64 * 1024;
@@ -17,9 +17,9 @@ const tool = {
     type: "object",
     properties: {
       title: { type: "string", description: "Titolo opzionale dell'interfaccia." },
-      spec: { type: "object", description: "Spec JSON dell'interfaccia (formato classico). Usa spec oppure openui, non entrambi." },
-      openui: { type: "string", description: "Testo OpenUI Lang (root = Col([...]) e righe di definizione). Alternativo a spec, massimo 20000 caratteri." },
-      id: { type: "string", description: "Id opzionale per aggiornare una riga già inviata." },
+      spec: { type: "object", description: "JSON spec of the interface (classic format). Use spec or openui, not both." },
+      openui: { type: "string", description: "OpenUI Lang text (root = Col([...]) and definition lines). Alternative to spec, up to 20000 characters." },
+      id: { type: "string", description: "Optional id to update a row that was already sent." },
     },
     required: [],
     additionalProperties: false,
@@ -30,14 +30,14 @@ const failure = (message) => ({ content: [{ type: "text", text: message }], isEr
 // così vale anche per le chat già aperte, che hanno ancora il programma MCP vecchio.
 async function callTool(args) {
   const { title, spec, openui, id } = args ?? {};
-  if (!bridgeUrl || !bridgeToken || !agentToken) return failure("Bridge Generative UI non configurato per questo agente.");
-  if (title !== undefined && typeof title !== "string") return failure("title deve essere una stringa.");
-  if (spec !== undefined && openui !== undefined) return failure("Passa spec oppure openui, non entrambi.");
-  if (spec === undefined && openui === undefined) return failure("Passa spec (oggetto JSON) oppure openui (testo OpenUI Lang).");
-  if (spec !== undefined && (!spec || typeof spec !== "object" || Array.isArray(spec))) return failure("spec deve essere un oggetto JSON.");
-  if (openui !== undefined && typeof openui !== "string") return failure("openui deve essere una stringa.");
-  if (id !== undefined && typeof id !== "string") return failure("id deve essere una stringa.");
-  if (Buffer.byteLength(JSON.stringify({ title, spec, openui }), "utf8") > maxBytes) return failure("I dati dell'interfaccia superano il limite di 64 KiB.");
+  if (!bridgeUrl || !bridgeToken || !agentToken) return failure("Generative UI bridge is not configured for this agent.");
+  if (title !== undefined && typeof title !== "string") return failure("title must be a string.");
+  if (spec !== undefined && openui !== undefined) return failure("Pass spec or openui, not both.");
+  if (spec === undefined && openui === undefined) return failure("Pass spec (JSON object) or openui (OpenUI Lang text).");
+  if (spec !== undefined && (!spec || typeof spec !== "object" || Array.isArray(spec))) return failure("spec must be a JSON object.");
+  if (openui !== undefined && typeof openui !== "string") return failure("openui must be a string.");
+  if (id !== undefined && typeof id !== "string") return failure("id must be a string.");
+  if (Buffer.byteLength(JSON.stringify({ title, spec, openui }), "utf8") > maxBytes) return failure("Interface data exceeds the 64 KiB limit.");
   try {
     const response = await fetch(bridgeUrl, {
       method: "POST",
@@ -46,10 +46,10 @@ async function callTool(args) {
     });
     const body = await response.json().catch(() => ({}));
     return response.ok
-      ? { content: [{ type: "text", text: "Interfaccia mostrata nella timeline." }] }
+      ? { content: [{ type: "text", text: "Interface shown in the timeline." }] }
       : failure(typeof body.error === "string" ? body.error : "Impossibile mostrare l'interfaccia.");
   } catch (error) {
-    return failure(error instanceof Error ? error.message : "Impossibile contattare il bridge.");
+    return failure(error instanceof Error ? error.message : "Cannot reach the bridge.");
   }
 }
 let buffer = "";

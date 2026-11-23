@@ -17,7 +17,7 @@ function bindable<T extends z.ZodType>(schema: T): T {
 export const openUiComponentDefs: { name: string; description: string; props: z.ZodObject<z.ZodRawShape> }[] = [
   {
     name: "Col",
-    description: "Colonna verticale. Senza gap spazia i blocchi come un articolo.",
+    description: "Vertical column. Without gap, blocks are spaced like an article.",
     props: z.object({
       children: node,
       gap: z.number().optional(),
@@ -26,7 +26,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "Row",
-    description: "Riga orizzontale; gli elementi sono centrati verticalmente.",
+    description: "Horizontal row; items are vertically centered.",
     props: z.object({
       children: node,
       gap: z.number().optional(),
@@ -37,7 +37,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "Card",
-    description: "Pannello con bordo. soft è un pannello pieno per i riepiloghi.",
+    description: "Panel with a border. soft is a filled panel for summaries.",
     props: z.object({
       children: node,
       variant: z.enum(["outline", "soft"]).optional(),
@@ -47,7 +47,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "Title",
-    description: "Titolo. lg per il titolo di una card, 2xl per un numero grande.",
+    description: "Title. lg for a card title, 2xl for a large number.",
     props: z.object({
       text: z.string(),
       size: z.enum(["sm", "md", "lg", "xl", "2xl", "3xl"]).optional(),
@@ -56,7 +56,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "Text",
-    description: "Paragrafo. Supporta testo semplice o una lista di stringhe e componenti inline.",
+    description: "Paragraph. Supports plain text or a list of strings and inline components.",
     props: z.object({
       text: z.union([z.string(), node]),
       size: z.enum(["xs", "sm", "md", "lg"]).optional(),
@@ -70,12 +70,12 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "Caption",
-    description: "Testo piccolo secondario.",
+    description: "Small secondary text.",
     props: z.object({ text: z.string(), color: colorName.optional() }),
   },
   {
     name: "Badge",
-    description: "Etichetta breve colorata.",
+    description: "Short colored label.",
     props: z.object({
       text: z.string(),
       color: z.enum(["neutral", "info", "success", "warning", "danger", "purple", "pink"]).optional(),
@@ -83,7 +83,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "Button",
-    description: "Bottone. L'azione può essere @ToAssistant, @OpenUrl, @Set, @Reset o @CopyToClipboard.",
+    description: "Button. The action can be @ToAssistant, @OpenUrl, @Set, @Reset or @CopyToClipboard.",
     props: z.object({
       label: z.string(),
       action: z.any().optional(),
@@ -97,7 +97,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "AgentLink",
-    description: "Bottone che apre la chat di un altro agente Paseo (agentId restituito da create_agent o list_agents). Nessun messaggio all'agente, solo navigazione.",
+    description: "Button that opens the chat of another Paseo agent (agentId returned by create_agent or list_agents). It sends no message to the agent, it only navigates.",
     props: z.object({
       label: z.string(),
       agentId: z.string(),
@@ -107,7 +107,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "Table",
-    description: "Tabella. Ogni riga elenca le celle nell'ordine delle colonne.",
+    description: "Table. Each row lists its cells in column order.",
     props: z.object({
       columns: z.array(z.string()),
       rows: z.array(z.array(z.any())),
@@ -115,7 +115,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "Chart",
-    description: "Grafico su righe di dati. Nel plugin sono disegnati bar e line.",
+    description: "Chart over data rows. The plugin draws bar and line.",
     props: z.object({
       type: z.enum(["bar", "line", "area", "pie", "donut", "scatter"]),
       data: z.array(z.record(z.string(), z.union([z.string(), z.number()]))),
@@ -129,17 +129,17 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "Divider",
-    description: "Linea orizzontale sottile di separazione.",
+    description: "Thin horizontal dividing line.",
     props: z.object({}),
   },
   {
     name: "Spacer",
-    description: "Riempie lo spazio libero in una Row.",
+    description: "Fills the free space in a Row.",
     props: z.object({}),
   },
   {
     name: "Grid",
-    description: "Griglia a colonne uguali (default 2). Con minChildWidth le colonne scendono su schermi stretti.",
+    description: "Grid with equal columns (default 2). With minChildWidth the columns stack on narrow screens.",
     props: z.object({
       children: node,
       columns: z.number().optional(),
@@ -149,7 +149,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "Carousel",
-    description: "Riga di card scorrevole in orizzontale con aggancio. Ideale su telefono per locali, prodotti o opzioni: una Card per elemento.",
+    description: "Horizontal scrolling row of cards with snap. Ideal on phones for places, products or options: one Card per item.",
     props: z.object({
       children: node,
       gap: z.number().optional(),
@@ -158,7 +158,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "List",
-    description: "Elenco puntato o numerato. Con timeline le voci sono unite da una linea. Le voci sono stringhe o ListItem.",
+    description: "Bulleted or numbered list. With timeline the items are joined by a line. Items are strings or ListItem.",
     props: z.object({
       items: z.array(z.any()),
       marker: z.enum(["bullet", "number", "none"]).optional(),
@@ -167,7 +167,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "ListItem",
-    description: "Voce di elenco con titolo, descrizione facoltativa e marker (per esempio un orario).",
+    description: "List item with a title, optional description and marker (for example a time).",
     props: z.object({
       title: z.string(),
       description: z.string().optional(),
@@ -177,7 +177,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "Image",
-    description: "Foto da un URL http(s) oppure da un file del Mac (percorso assoluto o file://, incorporato dal plugin). aspectRatio è larghezza su altezza, per esempio 1.5.",
+    description: "Photo from an http(s) URL or from a file on the Mac (absolute path or file://, embedded by the plugin). aspectRatio is width over height, for example 1.5.",
     props: z.object({
       src: z.string(),
       alt: z.string(),
@@ -188,7 +188,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "SearchImage",
-    description: "Foto trovata da sola su Wikipedia e Commons per una ricerca. query: 2-4 parole precise, per esempio il nome esatto di un luogo, monumento, piatto o prodotto. fallback: 1-2 parole generiche sul tipo di cosa (per esempio pasticcini, tiramisù, cattedrale) usate quando la foto precisa non esiste, come accade per i locali piccoli. Se non trova nulla mostra un segnaposto.",
+    description: "Photo found automatically on Wikipedia and Commons for a search. query: 2-4 precise words, for example the exact name of a place, monument, dish or product. fallback: 1-2 generic words about the kind of thing (for example pastries, tiramisu, cathedral) used when the exact photo does not exist, as often happens for small places. If nothing is found it shows a placeholder.",
     props: z.object({
       query: z.string(),
       fallback: z.string().optional(),
@@ -199,7 +199,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "Icon",
-    description: "Icona Lucide per nome in kebab-case (map-pin, star, clock, coffee, croissant, phone, globe, shopping-bag, heart, calendar). Usala accanto a un testo, in una Row.",
+    description: "Lucide icon by name in kebab-case (map-pin, star, clock, coffee, croissant, phone, globe, shopping-bag, heart, calendar). Use it next to a text, in a Row.",
     props: z.object({
       name: z.string(),
       size: z.number().optional(),
@@ -207,27 +207,27 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "Link",
-    description: "Link cliccabile che apre un URL http(s).",
+    description: "Clickable link that opens an http(s) URL.",
     props: z.object({ text: z.string(), url: z.string() }),
   },
   {
     name: "Quote",
-    description: "Citazione con filetto laterale. cite indica la fonte.",
+    description: "Quote with a side rule. cite gives the source.",
     props: z.object({ text: z.string(), cite: z.string().optional() }),
   },
   {
     name: "Code",
-    description: "Blocco di codice in monospazio, con scorrimento orizzontale.",
+    description: "Monospaced code block, with horizontal scrolling.",
     props: z.object({ code: z.string(), language: z.string().optional() }),
   },
   {
     name: "Label",
-    description: "Etichetta di campo o di gruppo.",
+    description: "Field or group label.",
     props: z.object({ text: z.string() }),
   },
   {
     name: "Input",
-    description: "Campo di testo o numero. value è una variabile $ che altri elementi leggono; un numero salva numeri.",
+    description: "Text or number field. value is a $ variable that other elements read; a number field stores numbers.",
     props: z.object({
       value: bindable(z.union([z.string(), z.number()])),
       label: z.string().optional(),
@@ -237,7 +237,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "TextArea",
-    description: "Area di testo su più righe collegata a una variabile $.",
+    description: "Multi-line text area bound to a $ variable.",
     props: z.object({
       value: bindable(z.string()),
       label: z.string().optional(),
@@ -247,7 +247,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "Select",
-    description: "Menu a tendina per liste di opzioni lunghe. Le opzioni sono stringhe o {value, label}.",
+    description: "Dropdown menu for long option lists. Options are strings or {value, label}.",
     props: z.object({
       value: bindable(z.string()),
       options: z.array(z.any()),
@@ -257,7 +257,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "SegmentedControl",
-    description: "Due o quattro scelte brevi affiancate. Le opzioni sono stringhe o {value, label}.",
+    description: "Two or four short choices side by side. Options are strings or {value, label}.",
     props: z.object({
       value: bindable(z.string()),
       options: z.array(z.any()),
@@ -266,7 +266,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "Slider",
-    description: "Valore numerico tra min e max, con etichetta e unità (% o $). Si regola con i passi −/+.",
+    description: "Numeric value between min and max, with label and unit (% or $). Adjusted with the −/+ steps.",
     props: z.object({
       value: bindable(z.number()),
       min: z.number(),
@@ -279,7 +279,7 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
   },
   {
     name: "Checkbox",
-    description: "Casella di spunta collegata a una variabile $ booleana. lineThrough barra l'etichetta quando è spuntata.",
+    description: "Checkbox bound to a boolean $ variable. lineThrough strikes through the label when checked.",
     props: z.object({
       checked: bindable(z.boolean()),
       label: z.string(),
@@ -301,21 +301,21 @@ export type OpenUiCheck = { ok: true } | { ok: false; message: string };
 
 /** Valida un testo OpenUI Lang: root presente, nessun riferimento non risolto, nessun argomento non valido. */
 export function checkOpenUi(source: string): OpenUiCheck {
-  if (source.trim() === "") return { ok: false, message: "Il campo openui è vuoto." };
-  if (source.length > maxOpenUiChars) return { ok: false, message: `Il campo openui supera ${maxOpenUiChars} caratteri.` };
+  if (source.trim() === "") return { ok: false, message: "The openui field is empty." };
+  if (source.length > maxOpenUiChars) return { ok: false, message: `The openui field exceeds ${maxOpenUiChars} characters.` };
   const result = createParser(validationLibrary.toJSONSchema()).parse(source);
   const lines = source.split("\n");
   if (result.meta.unresolved.length > 0) {
     const name = result.meta.unresolved[0];
     const index = lines.findIndex((line) => new RegExp(`\\b${name}\\b`).test(line));
-    const where = index >= 0 ? ` alla riga ${index + 1}: ${lines[index].trim()}` : "";
-    return { ok: false, message: `Riferimento non risolto "${name}"${where}. Definisci ${name} come riga separata oppure rimuovilo.` };
+    const where = index >= 0 ? ` at line ${index + 1}: ${lines[index].trim()}` : "";
+    return { ok: false, message: `Unresolved reference "${name}"${where}. Define ${name} as a separate line or remove it.` };
   }
   if (result.meta.errors.length > 0) {
     const error = result.meta.errors[0];
-    return { ok: false, message: `Argomenti non validi per ${error.component}${error.path ? ` (${error.path})` : ""}: ${error.message}` };
+    return { ok: false, message: `Invalid arguments for ${error.component}${error.path ? ` (${error.path})` : ""}: ${error.message}` };
   }
-  if (!result.root) return { ok: false, message: 'Manca la riga root. Scrivi per primo "root = Col([...])".' };
-  if (result.meta.incomplete) return { ok: false, message: "Il testo OpenUI sembra incompleto: controlla le parentesi chiuse." };
+  if (!result.root) return { ok: false, message: 'The root line is missing. Write "root = Col([...])" first.' };
+  if (result.meta.incomplete) return { ok: false, message: "The OpenUI text looks incomplete: check the closing brackets." };
   return { ok: true };
 }

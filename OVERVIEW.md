@@ -1,29 +1,30 @@
-<!--
-OVERVIEW.md is required to list your plugin in the registry. Keep it beside
-paseo-plugin.json in your repository at the pinned commit and in your npm package.
-Replace this comment with useful facts before publishing.
+Generative UI lets your agents answer with interactive blocks instead of plain text: cards, tables, charts, lists, photos, forms and buttons. When a block helps more than a paragraph, the agent calls a `show_ui` tool and the block appears in the chat timeline, on desktop and on mobile.
 
-This overview is for people choosing a plugin in Paseo, on the plugin page under
-its install command. README assumes a GitHub audience and includes technical
-details, installation instructions, and badges. Long, AI-generated READMEs leave
-people reading past that material to understand what the plugin does.
+Blocks are written in OpenUI Lang, a compact format from the open-intelligent-ui project. The plugin validates the text, tells the agent which line is wrong when it is not valid, and renders the result with Paseo's own components and theme.
 
-Write these parts in order, including only what helps someone decide to install:
+## How it works
 
-1. Describe what your plugin is and does in plain terms first.
-2. Explain how it works only when it is not obvious.
-3. Explain setup when needed: settings, accounts, tokens, providers, tools, or
-   other plugins. Include applicable daemon version and operating system
-   requirements. Setup guidance is allowed; installation instructions are not.
-4. Explain capabilities and settings worth understanding, what each option does,
-   what the plugin reads or sends and where, permissions, and known limits.
+The plugin adds a small MCP server named `generative-ui` to every agent it starts. The tool talks to a loopback HTTP bridge inside the plugin on `127.0.0.1`, protected by tokens, and the bridge appends the block to the agent's timeline once the turn ends, so it shows below the final answer. Pressing a button sends a short message back to the agent, and the timeline shows the pressed button as a small chip.
 
-Length follows complexity; a theme needs one paragraph. Choose headings only
-when they help. Use sentence case and plain factual language, with no em dashes.
-Omit installation commands, badges, changelog, contributing or license sections,
-marketing, and unsupported claims. Avoid implementation filler such as empty
-cleanup functions, theme-token field lists, or lists of absent features.
+Only agents created after the plugin is installed get the tool. Open a new chat after installing or updating.
 
-To translate the overview, add a whole copy beside this file named for the
-language, such as OVERVIEW.zh-CN.md. Readers in that language see it instead.
--->
+## Setup
+
+Open Settings, Plugins, Generative UI:
+
+- Look: follow the Paseo theme (default), or use dark pills with an accent glyph.
+- Accent color: an optional hex color. Empty uses the theme accent.
+- Bridge port: the local port of the bridge, 37621 by default. If it is busy the next free ports are tried. Reload the plugin after changing it; chats opened before the change need a new session.
+
+Requires Paseo 0.13.0 or later and npm on the daemon host.
+
+## What it reads and stores
+
+- Blocks are saved per agent under the Paseo home (`plugin-data/generative-ui`) so they come back when a chat is reopened, up to 200 blocks per agent.
+- Local images referenced by an agent as a file path are resized with `/usr/bin/sips` and embedded in the block. This works on macOS only; elsewhere use image URLs.
+- Photo search for `SearchImage` queries Wikipedia and Wikimedia Commons from the app.
+- If the Finale plugin is installed, blocks are drawn inside its answer box.
+
+## Known limits
+
+Map, Math, Popover, HtmlView, YouTube, Svg, DatePicker and Timer components are not implemented. Slider has no dragging. Button haptics are not available to plugins.

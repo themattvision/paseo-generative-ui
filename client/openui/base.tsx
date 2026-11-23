@@ -7,7 +7,7 @@ export const OpenUiContext = createContext<UiContext | null>(null);
 
 export function useUi(): UiContext {
   const context = useContext(OpenUiContext);
-  if (!context) throw new Error("OpenUiContext mancante.");
+  if (!context) throw new Error("OpenUiContext is missing.");
   return context;
 }
 

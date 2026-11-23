@@ -1,5 +1,6 @@
 import type { PluginClientContext } from "@getpaseo/plugin/client";
 import { ActionChip } from "./client/action-chip.js";
+import { GenerativeUiSettings } from "./client/settings.js";
 import { AGENT_SCREEN_ID, installAgentNav } from "./client/agent-nav.js";
 import { AgentRedirect } from "./client/agent-redirect.js";
 import { EmbeddedGenerativeUi, GenerativeUiItem } from "./client/generative-ui.js";
@@ -33,5 +34,16 @@ export default function contribute(client: PluginClientContext) {
   // AgentLink: schermata di passaggio che apre la chat di un altro agente (vedi client/agent-nav.ts).
   const removeAgentScreen = client.addScreen({ id: AGENT_SCREEN_ID, title: "Apri chat", Component: AgentRedirect });
   const removeAgentNav = installAgentNav((input) => client.openScreen(input));
-  return () => { removeRenderer(); removeChipRenderer(); removeChipTransformer(); removeBridge(); removeAgentScreen(); removeAgentNav(); };
+  // Settings → Plugins → Generative UI (Paseo's standard host-scoped settings).
+  const removeSettings = client.addSettingsScreen({ id: "appearance", title: "Generative UI", icon: "LayoutDashboard", Component: GenerativeUiSettings });
+  const removeCommand = client.addCommandCenterItem({
+    id: "settings",
+    title: "Configure Generative UI",
+    icon: "Settings",
+    context: "global",
+    onSelect({ openSettings }) {
+      openSettings("appearance");
+    },
+  });
+  return () => { removeRenderer(); removeChipRenderer(); removeChipTransformer(); removeBridge(); removeAgentScreen(); removeAgentNav(); removeSettings(); removeCommand(); };
 }

@@ -4,7 +4,14 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { GenerativeUiData } from "../shared/generative-ui.js";
 
-const dataDirectory = join(process.env.PASEO_PLUGIN_DATA_DIR ?? homedir(), ".paseo", "plugin-data", "generative-ui");
+// Data lives under the Paseo home (PASEO_HOME, default ~/.paseo) so a daemon started with a custom home keeps
+// its own data. PASEO_PLUGIN_DATA_DIR overrides the plugin-data root (used by tests).
+function paseoHome(): string {
+  const raw = process.env.PASEO_HOME;
+  if (!raw) return join(homedir(), ".paseo");
+  return raw === "~" ? homedir() : raw.startsWith("~/") ? join(homedir(), raw.slice(2)) : raw;
+}
+const dataDirectory = join(process.env.PASEO_PLUGIN_DATA_DIR ?? join(paseoHome(), "plugin-data"), "generative-ui");
 const maxRows = 200;
 export type SavedRow = { id: string; data: GenerativeUiData };
 function fileFor(agentId: string) { return join(dataDirectory, `${encodeURIComponent(agentId)}.json`); }

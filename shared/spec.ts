@@ -113,18 +113,18 @@ export type SpecValidation = { ok: true; nodeCount: number } | { ok: false; mess
 export function validateSpec(spec: unknown): SpecValidation {
   let nodeCount = 0;
   const visit = (node: unknown, depth: number): string | undefined => {
-    if (!node || typeof node !== "object" || Array.isArray(node)) return "Ogni nodo della spec deve essere un oggetto.";
+    if (!node || typeof node !== "object" || Array.isArray(node)) return "Every spec node must be an object.";
     const parsed = specNodeSchema.safeParse(node);
-    if (!parsed.success) return "Ogni nodo della spec deve avere un type valido.";
+    if (!parsed.success) return "Every spec node must have a valid type.";
     if (supportedTypes.has(parsed.data.type)) {
       const known = knownSpecNodeSchema.safeParse(node);
-      if (!known.success) return `Il componente ${parsed.data.type} non è valido: ${known.error.issues[0]?.message ?? "proprietà mancanti"}.`;
+      if (!known.success) return `The component ${parsed.data.type} is not valid: ${known.error.issues[0]?.message ?? "missing properties"}.`;
     }
-    if (depth > MAX_SPEC_DEPTH) return `La spec supera la profondità massima di ${MAX_SPEC_DEPTH} livelli.`;
+    if (depth > MAX_SPEC_DEPTH) return `The spec exceeds the maximum depth of ${MAX_SPEC_DEPTH} levels.`;
     nodeCount += 1;
-    if (nodeCount > MAX_SPEC_NODES) return `La spec supera il massimo di ${MAX_SPEC_NODES} nodi.`;
+    if (nodeCount > MAX_SPEC_NODES) return `The spec exceeds the maximum of ${MAX_SPEC_NODES} nodes.`;
     const children = (node as { children?: unknown }).children;
-    if (children !== undefined && !Array.isArray(children)) return "children deve essere un array.";
+    if (children !== undefined && !Array.isArray(children)) return "children must be an array.";
     for (const child of children ?? []) {
       const problem = visit(child, depth + 1);
       if (problem) return problem;

@@ -144,7 +144,7 @@ function PhotoBlock({ src, query, fallback, props }: { src?: string; query: stri
       {/* Un tocco apre la foto a schermo intero con zoom (image-viewer.tsx). */}
       <Pressable
         accessibilityRole="imagebutton"
-        accessibilityLabel={query ? `${query}, apri a schermo intero` : "Apri la foto a schermo intero"}
+        accessibilityLabel={query ? `${query}, open full screen` : "Open the photo full screen"}
         disabled={!url}
         onPress={() => setOpen(true)}
         style={{ width: "100%", ...(url ? ({ cursor: "zoom-in" } as unknown as ViewStyle) : {}) }}

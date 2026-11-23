@@ -150,7 +150,7 @@ export function ImageViewer({ uri, label, onClose }: { uri: string; label: strin
           pointerEvents="box-none"
           style={{ position: "absolute", top: 0, left: 0, right: 0, paddingTop: isIos ? 56 : 16, paddingHorizontal: 16, alignItems: "flex-end" }}
         >
-          <RoundButton icon="X" label="Chiudi immagine" onPress={onClose} />
+          <RoundButton icon="X" label="Close image" onPress={onClose} />
         </View>
         {isIos ? null : (
           <View
@@ -158,7 +158,7 @@ export function ImageViewer({ uri, label, onClose }: { uri: string; label: strin
             style={{ position: "absolute", bottom: 24, left: 0, right: 0, flexDirection: "row", justifyContent: "center", gap: 12 }}
           >
             <RoundButton icon="Minus" label="Riduci" onPress={() => zoomBy(1 / 1.6)} />
-            <RoundButton icon="Maximize" label="Adatta allo schermo" onPress={() => setScale(1)} />
+            <RoundButton icon="Maximize" label="Fit to screen" onPress={() => setScale(1)} />
             <RoundButton icon="Plus" label="Ingrandisci" onPress={() => zoomBy(1.6)} />
           </View>
         )}

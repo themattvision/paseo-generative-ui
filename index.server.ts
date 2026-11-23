@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { join } from "node:path";
 import type { PluginHookContext, PluginServerContext } from "@getpaseo/plugin/server";
 import { embedLocalImages } from "./server/local-images.js";
@@ -13,10 +13,25 @@ import {
   maxGenerativeUiDataBytes,
 } from "./shared/generative-ui.js";
 import { maxOpenUiChars } from "./shared/openui-signatures.js";
+import { defaultBridgePort, preferences } from "./shared/preferences.js";
 import { sanitizeGenerativeUiData } from "./shared/html.js";
 import { loadAgentTokens, loadOrCreateBridgeToken, readRows, removeRows, saveAgentTokens, saveRow } from "./server/persistence.js";
 
-const bridgePort = 37621;
+function tryListen(bridge: Server, port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const onError = () => {
+      bridge.off("listening", onListening);
+      resolve(false);
+    };
+    const onListening = () => {
+      bridge.off("error", onError);
+      resolve(true);
+    };
+    bridge.once("error", onError);
+    bridge.once("listening", onListening);
+    bridge.listen(port, "127.0.0.1");
+  });
+}
 
 function resolveNodeCommand(): string {
   for (const directory of (process.env.PATH ?? "").split(":")) {
@@ -33,7 +48,7 @@ function readJson(request: IncomingMessage): Promise<unknown> {
     request.on("data", (chunk: Buffer) => {
       size += chunk.length;
       if (size > maxGenerativeUiBodyBytes) {
-        reject(new Error("Corpo della richiesta troppo grande."));
+        reject(new Error("Request body is too large."));
         request.destroy();
         return;
       }
@@ -43,7 +58,7 @@ function readJson(request: IncomingMessage): Promise<unknown> {
       try {
         resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")));
       } catch {
-        reject(new Error("JSON non valido."));
+        reject(new Error("Invalid JSON."));
       }
     });
     request.on("error", reject);
@@ -70,13 +85,13 @@ export default function contribute(server: PluginServerContext) {
     for (const [rowId, data] of queue) await append(agentId, rowId, data, true);
   }
   async function append(agentId: string, id: string, data: ReturnType<typeof generativeUiSchema.parse>, persist: boolean) {
-    if (!paseo) throw new Error("Bridge Generative UI non ancora inizializzato.");
+    if (!paseo) throw new Error("Generative UI bridge is not initialized yet.");
     await paseo.agents.ref(agentId).timeline.append({ type: "plugin", id, kind: "generative-ui", version: 1, data });
     if (persist) await saveRow(agentId, { id, data });
   }
   const bridge = createServer(async (request, response) => {
     if (request.method !== "POST" || request.url !== "/append") {
-      reply(response, 404, { error: "Risorsa non trovata." });
+      reply(response, 404, { error: "Resource not found." });
       return;
     }
     if (request.headers.authorization !== `Bearer ${token}`) {
@@ -85,12 +100,12 @@ export default function contribute(server: PluginServerContext) {
     }
     try {
       const input = await readJson(request);
-      if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Input non valido.");
+      if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Invalid input.");
       const { agentToken, id, ...data } = input as Record<string, unknown>;
-      if (typeof agentToken !== "string") throw new Error("Token agente mancante.");
+      if (typeof agentToken !== "string") throw new Error("Agent token is missing.");
       const agentId = agentTokens.get(agentToken);
-      if (!agentId) throw new Error("Agente non disponibile per questo token.");
-      if (id !== undefined && (typeof id !== "string" || !id)) throw new Error("id non valido.");
+      if (!agentId) throw new Error("Agent not available for this token.");
+      if (id !== undefined && (typeof id !== "string" || !id)) throw new Error("Invalid id.");
       const rowId = typeof id === "string" ? id : `generative-ui-${randomBytes(8).toString("hex")}`;
       // Errore leggibile per l'agente (es. riga e riferimento OpenUI non risolti), non il JSON grezzo di Zod.
       // Le immagini incorporate (data URI) si tolgono prima dei controlli di testo e si rimettono dopo: i limiti di
@@ -104,16 +119,16 @@ export default function contribute(server: PluginServerContext) {
           return `data:image/jpeg;base64,STUB${embedded.length - 1}END`;
         });
         data.openui = textOnly;
-        if (textOnly.length > maxOpenUiChars) throw new Error(`Il testo OpenUI supera il limite di ${maxOpenUiChars} caratteri.`);
+        if (textOnly.length > maxOpenUiChars) throw new Error(`OpenUI text exceeds the limit of ${maxOpenUiChars} characters.`);
       }
       if (embedded.reduce((total, uri) => total + uri.length, 0) > maxEmbeddedImagesBytes) {
-        throw new Error("Le immagini incorporate superano il limite di 900 KiB: usa foto più piccole.");
+        throw new Error("Embedded images exceed the 900 KiB limit: use smaller photos.");
       }
       const checked = generativeUiSchema.safeParse(data);
-      if (!checked.success) throw new Error(checked.error.issues[0]?.message ?? "Dati dell'interfaccia non validi.");
+      if (!checked.success) throw new Error(checked.error.issues[0]?.message ?? "Invalid interface data.");
       const clean = sanitizeGenerativeUiData({ ...checked.data, rowId });
       if (Buffer.byteLength(JSON.stringify(clean), "utf8") > maxGenerativeUiDataBytes) {
-        throw new Error("I dati dell'interfaccia superano il limite di 64 KiB.");
+        throw new Error("Interface data exceeds the 64 KiB limit.");
       }
       const parsed =
         embedded.length > 0 && typeof clean.openui === "string"
@@ -128,14 +143,29 @@ export default function contribute(server: PluginServerContext) {
       pendingRows.set(agentId, queue);
       reply(response, 200, { ok: true });
     } catch (error) {
-      reply(response, 400, { error: error instanceof Error ? error.message : "Input non valido." });
+      reply(response, 400, { error: error instanceof Error ? error.message : "Invalid input." });
     }
   });
-  bridge.on("error", (error) => console.error("Bridge Generative UI non disponibile:", error));
-  bridge.listen(bridgePort, "127.0.0.1");
-  const bridgeUrl = `http://127.0.0.1:${bridgePort}/append`;
-  const removeHook = server.before("agent.create", ({ request }, context) => {
+  bridge.on("error", (error) => console.error("Generative UI bridge error:", error));
+  // The port comes from Settings → Plugins → Generative UI (default 37621). If it is taken, the next free ports are tried.
+  const settings = server.registerSettings(preferences);
+  let bridgeUrl = "";
+  const bridgeReady = (async () => {
+    const current = await settings.read();
+    const preferred = current.status === "ready" ? current.values.bridgePort : defaultBridgePort;
+    for (let port = preferred; port < preferred + 20 && port <= 65535; port++) {
+      if (await tryListen(bridge, port)) {
+        bridgeUrl = `http://127.0.0.1:${port}/append`;
+        if (port !== preferred) console.error(`Generative UI: port ${preferred} is in use, bridge listening on ${port}.`);
+        return;
+      }
+    }
+    console.error(`Generative UI: no free port from ${preferred}; show_ui is unavailable. Set another port in Settings → Plugins → Generative UI.`);
+  })();
+  const removeHook = server.before("agent.create", async ({ request }, context) => {
     paseo = context.paseo;
+    await bridgeReady;
+    if (!bridgeUrl) return undefined;
     const agentToken = randomBytes(32).toString("hex");
     return {
     ...request,

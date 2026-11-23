@@ -4,7 +4,7 @@ import { rememberPressedLabel } from "../pressed.js";
 import { createLibrary, defineComponent, useTriggerAction } from "./react-lang";
 import { openUiComponentDefs } from "../../shared/openui-signatures.js";
 import { Squircle } from "../ds/squircle.js";
-import { space, matteoYellow } from "../ds/tokens.js";
+import { space, look } from "../ds/tokens.js";
 import { OpenUiContext, useUi, type Renderer } from "./base.js";
 import { contentRenderers } from "./content.js";
 import { controlRenderers } from "./controls.js";
@@ -110,7 +110,7 @@ function ButtonView({ label, variant, color, icon, disabled, block, onPress }: {
     // danger o success, etichetta chiara), soft = vetro neutro, outline = vetro chiaro (clear). Il giallo sta
     // solo sul pulsante principale: gli altri restano neutri così la gerarchia si legge a colpo d'occhio.
     const palette = context.theme.colors as Record<string, string>;
-    const tone = color === "danger" ? { tint: palette.statusDanger, label: "#ffffff" } : color === "success" ? { tint: palette.statusSuccess, label: "#ffffff" } : { tint: matteoYellow, label: "#14141a" };
+    const tone = color === "danger" ? { tint: palette.statusDanger, label: "#ffffff" } : color === "success" ? { tint: palette.statusSuccess, label: "#ffffff" } : { tint: look.accent, label: look.onAccent };
     const tint = solid && tone.tint ? withAlpha(tone.tint, 0.85) : undefined;
     const glassLabel = solid ? tone.label : context.theme.colors.foreground;
     return (
@@ -168,7 +168,7 @@ const AgentLink: Renderer = ({ props }) => {
   return (
     <ButtonView
       label={props.label} variant={props.variant ?? "soft"} icon={props.icon ?? "message-square"}
-      onPress={() => { if (!openAgentChat(String(props.agentId))) toast.show("Non riesco ad aprire la chat", { variant: "error" }); }}
+      onPress={() => { if (!openAgentChat(String(props.agentId))) toast.show("Cannot open the chat", { variant: "error" }); }}
     />
   );
 };
@@ -221,7 +221,7 @@ const Chart: Renderer = ({ props }) => {
   const max = Math.max(1, ...data.flatMap((row) => series.map((key) => Number(row[key]) || 0)));
   const height = props.height ?? 160;
   if (props.type !== "bar" && props.type !== "line") {
-    return <Text style={{ color: context.theme.colors.foregroundMuted, fontSize: 12 }}>Grafico {props.type} non ancora disponibile nel plugin.</Text>;
+    return <Text style={{ color: context.theme.colors.foregroundMuted, fontSize: 12 }}>Chart {props.type} is not available in the plugin yet.</Text>;
   }
   return (
     <View style={{ width: "100%", height, flexDirection: "row", alignItems: "flex-end", gap: space[8] }}>
@@ -234,9 +234,6 @@ const Chart: Renderer = ({ props }) => {
     </View>
   );
 };
-
-// Accento giallo solo come bordo sottile sul primo blocco, mai pieno.
-export const accentRule = matteoYellow;
 
 const renderers: Record<string, Renderer> = {
   Col, Row, Card, Title, Text: Text_, Caption, Badge, Button, AgentLink, Table, Chart, ...contentRenderers, ...controlRenderers, ...mediaRenderers,

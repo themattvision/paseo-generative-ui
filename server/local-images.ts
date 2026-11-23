@@ -19,7 +19,7 @@ export function loadLocalImage(rawPath: string): string {
     try { file = decodeURIComponent(file); } catch { /* percorso non codificato */ }
   }
   if (!existsSync(file) || !statSync(file).isFile()) {
-    throw new Error(`Immagine non trovata: ${file}. Il telefono non legge il Mac: passa un file che esiste su questo computer.`);
+    throw new Error(`Image not found: ${file}. The phone cannot read the Mac: pass a file that exists on this computer.`);
   }
   const mime = mimeByExtension[extname(file).slice(1).toLowerCase()];
   const original = readFileSync(file);
@@ -39,7 +39,7 @@ export function loadLocalImage(rawPath: string): string {
   } finally {
     rmSync(folder, { recursive: true, force: true });
   }
-  throw new Error(`Impossibile rimpicciolire l'immagine ${file} sotto i 260 KiB: usa un file più piccolo.`);
+  throw new Error(`Cannot shrink the image ${file} below 260 KiB: use a smaller file.`);
 }
 
 /** Sostituisce ogni Image("/percorso") o Image("file://...") del testo OpenUI con il data URI del file. */

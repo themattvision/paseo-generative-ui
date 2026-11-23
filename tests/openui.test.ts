@@ -30,9 +30,9 @@ assert.deepEqual(checkOpenUi(validOpenUi), { ok: true }, "un testo OpenUI valido
 const unresolved = 'root = Col([titolo, mancante])\ntitolo = Title("Ciao")';
 const unresolvedCheck = checkOpenUi(unresolved);
 assert.equal(unresolvedCheck.ok, false, "un riferimento non risolto deve essere rifiutato");
-assert.ok(!unresolvedCheck.ok && unresolvedCheck.message.includes("Riferimento non risolto"), "il messaggio deve essere in italiano");
+assert.ok(!unresolvedCheck.ok && unresolvedCheck.message.includes("Unresolved reference"), "the message must be in English");
 assert.ok(!unresolvedCheck.ok && unresolvedCheck.message.includes('"mancante"'), "il messaggio deve citare il riferimento mancante");
-assert.ok(!unresolvedCheck.ok && unresolvedCheck.message.includes("riga 1"), "il messaggio deve citare la riga");
+assert.ok(!unresolvedCheck.ok && unresolvedCheck.message.includes("line 1"), "il messaggio deve citare la riga");
 assert.equal(generativeUiSchema.safeParse({ openui: unresolved }).success, false, "generativeUiSchema rifiuta il riferimento non risolto");
 
 const noRoot = 'titolo = Title("Ciao")';
@@ -76,8 +76,8 @@ try {
   assert.match(embeddedLocal, /Image\("data:image\/png;base64,[A-Za-z0-9+/=]+", "Prova"\)/, "un file locale deve diventare un data URI");
   assert.throws(
     () => embedLocalImages('img = Image("file:///tmp/non-esiste-genui.png", "x")'),
-    (error: unknown) => error instanceof Error && error.message.startsWith("Immagine non trovata"),
-    "un file inesistente deve dare Immagine non trovata",
+    (error: unknown) => error instanceof Error && error.message.startsWith("Image not found"),
+    "un file inesistente deve dare Image not found",
   );
 } finally {
   rmSync(localDir, { recursive: true, force: true });

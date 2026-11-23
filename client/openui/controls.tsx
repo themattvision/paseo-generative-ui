@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { Squircle } from "../ds/squircle.js";
-import { ink, matteoYellow, space } from "../ds/tokens.js";
+import { look, space } from "../ds/tokens.js";
 import { useUi, type Renderer } from "./base.js";
 
 // Componenti con stato. Una prop $variabile arriva come campo reattivo (value e setValue) e aggiorna lo store
@@ -49,7 +49,7 @@ const Input: Renderer = ({ props }) => {
       <FieldLabel text={props.label} />
       <Squircle radius={16} style={{ backgroundColor: theme.colors.surface1, borderColor: theme.colors.border, borderWidth: 1 }}>
         <TextInput
-          accessibilityLabel={String(props.label ?? props.placeholder ?? "Campo")}
+          accessibilityLabel={String(props.label ?? props.placeholder ?? "Field")}
           value={draft}
           placeholder={props.placeholder}
           placeholderTextColor={theme.colors.foregroundMuted}
@@ -74,7 +74,7 @@ const TextAreaBlock: Renderer = ({ props }) => {
       <FieldLabel text={props.label} />
       <Squircle radius={16} style={{ backgroundColor: theme.colors.surface1, borderColor: theme.colors.border, borderWidth: 1 }}>
         <TextInput
-          accessibilityLabel={String(props.label ?? props.placeholder ?? "Testo")}
+          accessibilityLabel={String(props.label ?? props.placeholder ?? "Text")}
           value={String(value ?? "")}
           onChangeText={setValue}
           placeholder={props.placeholder}
@@ -100,7 +100,7 @@ const Select: Renderer = ({ props }) => {
       <FieldLabel text={props.label} />
       <Squircle radius={16} style={{ backgroundColor: theme.colors.surface1, borderColor: theme.colors.border, borderWidth: 1 }}>
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen(!open)} style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: space[12] }}>
-          <Text style={{ color: current ? theme.colors.foreground : theme.colors.foregroundMuted, fontSize: 16 }}>{current?.label ?? String(props.placeholder ?? "Scegli")}</Text>
+          <Text style={{ color: current ? theme.colors.foreground : theme.colors.foregroundMuted, fontSize: 16 }}>{current?.label ?? String(props.placeholder ?? "Choose")}</Text>
         </Pressable>
         {open ? options.map((option) => (
           <Pressable
@@ -154,7 +154,7 @@ const Slider: Renderer = ({ props }) => {
   const unit = String(props.unit ?? "");
   const shown = unit === "$" ? `$${current}` : `${current}${unit}`;
   const stepButton = (label: string, next: number) => (
-    <Pressable accessibilityRole="button" accessibilityLabel={label === "−" ? "Diminuisci" : "Aumenta"} onPress={() => setValue(clamp(next))} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label === "−" ? "Decrease" : "Increase"} onPress={() => setValue(clamp(next))} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
       <Text style={{ color: theme.colors.foreground, fontSize: 20, fontWeight: "600" }}>{label}</Text>
     </Pressable>
   );
@@ -182,8 +182,8 @@ const Checkbox: Renderer = ({ props }) => {
   const on = checked === true;
   return (
     <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={() => setChecked(!on)} style={{ minHeight: 44, flexDirection: "row", alignItems: "center", gap: space[12] }}>
-      <Squircle radius={6} fill={false} style={{ width: 22, height: 22, alignItems: "center", justifyContent: "center", backgroundColor: on ? ink : "transparent", borderColor: on ? ink : theme.colors.border, borderWidth: 1.5 }}>
-        {on ? <Text style={{ color: matteoYellow, fontSize: 14, fontWeight: "700", lineHeight: 16 }}>✓</Text> : null}
+      <Squircle radius={6} fill={false} style={{ width: 22, height: 22, alignItems: "center", justifyContent: "center", backgroundColor: on ? look.fill : "transparent", borderColor: on ? look.fill : theme.colors.border, borderWidth: 1.5 }}>
+        {on ? <Text style={{ color: look.glyph, fontSize: 14, fontWeight: "700", lineHeight: 16 }}>✓</Text> : null}
       </Squircle>
       <Text style={{ flex: 1, color: on ? theme.colors.foregroundMuted : theme.colors.foreground, fontSize: 16, lineHeight: 23, textDecorationLine: on && props.lineThrough ? "line-through" : "none" }}>{String(props.label ?? "")}</Text>
     </Pressable>
