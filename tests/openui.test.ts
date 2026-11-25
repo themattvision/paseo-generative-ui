@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { embeddedImagePattern, generativeUiSchema } from "../shared/generative-ui.js";
 import { checkOpenUi, maxOpenUiChars } from "../shared/openui-signatures.js";
-import { embedLocalImages } from "../server/local-images.js";
+import { embedLocalImages, localImagePaths } from "../server/local-images.js";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -26,6 +26,23 @@ const validOpenUi = [
 const openUiPayload = { openui: validOpenUi };
 assert.equal(generativeUiSchema.safeParse(openUiPayload).success, true, "un testo OpenUI valido deve passare generativeUiSchema");
 assert.deepEqual(checkOpenUi(validOpenUi), { ok: true }, "un testo OpenUI valido deve passare checkOpenUi");
+
+const collapsibleOpenUi = [
+  'root = Col([intro, dettagli])',
+  'intro = Text("Fatto.")',
+  'dettagli = Collapsible("Apri la spiegazione", "Chiudi la spiegazione", [perche])',
+  'perche = Text("Il perché sta qui dentro.")',
+].join("\n");
+assert.deepEqual(checkOpenUi(collapsibleOpenUi), { ok: true }, "Collapsible con etichette e figli deve passare checkOpenUi");
+assert.deepEqual(checkOpenUi(collapsibleOpenUi.replace("[perche])", "[perche], true)")), { ok: true }, "Collapsible accetta defaultOpen");
+
+const instagramOpenUi = [
+  'root = Col([post], 12)',
+  'post = InstagramPost(["/tmp/a.png", "/tmp/b.png"], "themattvision", "Il tuo smanettone di Fiducia", "/tmp/avatar.jpg", "Didascalia")',
+].join("\n");
+assert.deepEqual(checkOpenUi(instagramOpenUi), { ok: true }, "InstagramPost con immagini, handle, nome, avatar e didascalia deve passare checkOpenUi");
+assert.deepEqual(localImagePaths(instagramOpenUi).sort(), ["/tmp/a.png", "/tmp/avatar.jpg", "/tmp/b.png"], "i percorsi dentro gli elenchi di InstagramPost vanno incorporati");
+assert.deepEqual(localImagePaths('x = Image("/tmp/c.png", "alt")'), ["/tmp/c.png"], "Image con percorso locale resta riconosciuta");
 
 const unresolved = 'root = Col([titolo, mancante])\ntitolo = Title("Ciao")';
 const unresolvedCheck = checkOpenUi(unresolved);

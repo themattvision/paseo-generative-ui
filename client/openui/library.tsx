@@ -7,6 +7,8 @@ import { Squircle } from "../ds/squircle.js";
 import { space, look } from "../ds/tokens.js";
 import { OpenUiContext, useUi, type Renderer } from "./base.js";
 import { contentRenderers } from "./content.js";
+import { collapsibleRenderers } from "./collapsible.js";
+import { instagramRenderers } from "./instagram.js";
 import { controlRenderers } from "./controls.js";
 import { lucideName, mediaRenderers } from "./media.js";
 import { Icon as PaseoIcon, useToast } from "@getpaseo/plugin/client/ui";
@@ -236,7 +238,7 @@ const Chart: Renderer = ({ props }) => {
 };
 
 const renderers: Record<string, Renderer> = {
-  Col, Row, Card, Title, Text: Text_, Caption, Badge, Button, AgentLink, Table, Chart, ...contentRenderers, ...controlRenderers, ...mediaRenderers,
+  Col, Row, Card, Title, Text: Text_, Caption, Badge, Button, AgentLink, Table, Chart, ...contentRenderers, ...collapsibleRenderers, ...instagramRenderers, ...controlRenderers, ...mediaRenderers,
 };
 
 export const openUiLibrary = createLibrary({

@@ -3,6 +3,7 @@ import { Image, Pressable, View, type ViewStyle } from "react-native";
 import { Icon as PaseoIcon } from "@getpaseo/plugin/client/ui";
 import { Squircle } from "../ds/squircle.js";
 import { ImageViewer } from "./image-viewer.js";
+import { isLocalImagePath, useResolvedImage } from "./local-image.js";
 import { radiusOf, useUi, type Renderer } from "./base.js";
 
 // Icone Lucide per nome e foto (Image con URL, SearchImage con ricerca su Wikipedia e Commons).
@@ -133,8 +134,11 @@ function usePhotos(query: string, fallback: string | undefined, enabled: boolean
 function PhotoBlock({ src, query, fallback, props }: { src?: string; query: string; fallback?: string; props: Record<string, any> }) {
   const { theme } = useUi();
   const [failed, setFailed] = useState<string[]>([]);
-  const direct = src && isHttpUrl(src) ? src : undefined;
-  const found = usePhotos(query, fallback, !direct || failed.includes(direct));
+  // Percorso di un file del Mac: lo carica il plugin con l'RPC images.load (local-image.tsx), niente ricerca su Wikipedia.
+  const local = isLocalImagePath(src);
+  const resolvedSrc = useResolvedImage(src && (local || isHttpUrl(src)) ? src : undefined);
+  const direct = resolvedSrc && isHttpUrl(resolvedSrc) ? resolvedSrc : undefined;
+  const found = usePhotos(query, fallback, !local && (!direct || failed.includes(direct)));
   const candidates = [direct, ...found.photos].filter((url): url is string => Boolean(url) && !failed.includes(url as string));
   const url = candidates[0];
   const [open, setOpen] = useState(false);

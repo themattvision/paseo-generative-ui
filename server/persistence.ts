@@ -55,6 +55,32 @@ export function loadAgentTokens(): Map<string, string> {
   return new Map();
 }
 
+// Percorsi di immagini che un blocco show_ui ha dichiarato (25 novembre 2026). Il client li chiede al plugin con l'RPC
+// `images.load` (le immagini NON stanno nella riga: il daemon rifiuta righe plugin oltre 64 KiB), e il plugin serve
+// solo file di questo elenco, mai un percorso qualunque.
+const imagePathsFile = join(dataDirectory, "_image-paths.json");
+
+export function loadImagePaths(): Set<string> {
+  try {
+    const parsed = JSON.parse(readFileSync(imagePathsFile, "utf8"));
+    if (Array.isArray(parsed)) return new Set(parsed.filter((entry): entry is string => typeof entry === "string"));
+  } catch {
+    // nessun file: elenco vuoto
+  }
+  return new Set();
+}
+
+export function saveImagePaths(paths: Set<string>) {
+  try {
+    mkdirSync(dataDirectory, { recursive: true });
+    const temporary = `${imagePathsFile}.${process.pid}.tmp`;
+    writeFileSync(temporary, JSON.stringify([...paths].slice(-5000)), { encoding: "utf8", mode: 0o600 });
+    renameSync(temporary, imagePathsFile);
+  } catch {
+    // best effort: in memoria funziona comunque fino al prossimo reload
+  }
+}
+
 export function saveAgentTokens(tokens: Map<string, string>) {
   try {
     mkdirSync(dataDirectory, { recursive: true });

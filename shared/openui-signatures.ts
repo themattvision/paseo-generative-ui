@@ -157,6 +157,27 @@ export const openUiComponentDefs: { name: string; description: string; props: z.
     }),
   },
   {
+    name: "InstagramPost",
+    description: "Instagram-style preview of a post or carousel inside the chat: a Grid and an Instagram tab, header with profile photo, name and verified check, swipeable slides with an n/N counter and dots, icons and caption. Tapping a slide opens it full screen with zoom. images is an array of absolute file paths on the computer running the daemon (for example [\"/Users/.../01.png\", \"/Users/.../02.png\"]), embedded and shrunk by the plugin so they are visible from the phone too, or of image URLs. Use it for every carousel or multi-image preview; for a single picture use Image. avatar is an optional profile photo path.",
+    props: z.object({
+      images: z.array(z.string()),
+      handle: z.string().optional(),
+      name: z.string().optional(),
+      avatar: z.string().optional(),
+      caption: z.string().optional(),
+    }),
+  },
+  {
+    name: "Collapsible",
+    description: "Single toggle button that opens and closes its content with a smooth fade and height animation. The button reads openLabel while closed and closeLabel while open, with a chevron that turns. Use it for details, explanations and long lists that most readers do not need: no $variable, no Button and no @Set needed.",
+    props: z.object({
+      openLabel: z.string(),
+      closeLabel: z.string(),
+      children: node,
+      defaultOpen: z.boolean().optional(),
+    }),
+  },
+  {
     name: "List",
     description: "Bulleted or numbered list. With timeline the items are joined by a line. Items are strings or ListItem.",
     props: z.object({

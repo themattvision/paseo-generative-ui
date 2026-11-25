@@ -1,9 +1,10 @@
 import { randomBytes } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { join } from "node:path";
 import type { PluginHookContext, PluginServerContext } from "@getpaseo/plugin/server";
-import { embedLocalImages } from "./server/local-images.js";
+import { loadLocalImage, localImagePaths, normalizeImagePath } from "./server/local-images.js";
+import { loadImage } from "./shared/images.js";
 import { mcpProgram } from "./server/mcp-program.js";
 import {
   embeddedImagePattern,
@@ -15,7 +16,7 @@ import {
 import { maxOpenUiChars } from "./shared/openui-signatures.js";
 import { defaultBridgePort, preferences } from "./shared/preferences.js";
 import { sanitizeGenerativeUiData } from "./shared/html.js";
-import { loadAgentTokens, loadOrCreateBridgeToken, readRows, removeRows, saveAgentTokens, saveRow } from "./server/persistence.js";
+import { loadAgentTokens, loadImagePaths, loadOrCreateBridgeToken, saveImagePaths, readRows, removeRows, saveAgentTokens, saveRow } from "./server/persistence.js";
 
 function tryListen(bridge: Server, port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -77,6 +78,13 @@ export default function contribute(server: PluginServerContext) {
   const token = loadOrCreateBridgeToken(() => randomBytes(32).toString("hex"));
   let paseo: PluginHookContext["paseo"] | undefined;
   const agentTokens = loadAgentTokens();
+  const imagePaths = loadImagePaths();
+  // RPC delle immagini: serve solo i file che un blocco show_ui ha dichiarato.
+  server.handle(loadImage, ({ path }) => {
+    const file = normalizeImagePath(path);
+    if (!imagePaths.has(file)) throw new Error("Image not available.");
+    return { uri: loadLocalImage(file, 170 * 1024) };
+  });
   const pendingRows = new Map<string, Map<string, ReturnType<typeof generativeUiSchema.parse>>>();
   async function flushPending(agentId: string) {
     const queue = pendingRows.get(agentId);
@@ -110,8 +118,19 @@ export default function contribute(server: PluginServerContext) {
       // Errore leggibile per l'agente (es. riga e riferimento OpenUI non risolti), non il JSON grezzo di Zod.
       // Le immagini incorporate (data URI) si tolgono prima dei controlli di testo e si rimettono dopo: i limiti di
       // 20000 caratteri e 64 KiB riguardano il testo, le immagini hanno un tetto a parte.
-      // File locali (Image("/percorso") o file://) → data URI, qui nel bridge così vale anche per le chat già aperte.
-      if (typeof data.openui === "string") data.openui = embedLocalImages(data.openui);
+      // File locali (Image("/percorso"), file:// e gli elenchi di InstagramPost): NON si incorporano più nella riga
+      // (il daemon rifiuta righe plugin oltre 64 KiB, sintomo del 25 novembre: carosello da 13 slide che non
+      // compariva mai). Si controlla che esistano e si registrano nell'elenco servito dall'RPC images.load.
+      if (typeof data.openui === "string") {
+        for (const rawPath of localImagePaths(data.openui)) {
+          const file = normalizeImagePath(rawPath);
+          if (!existsSync(file) || !statSync(file).isFile()) {
+            throw new Error(`Image not found: ${file}. Pass a file that exists on this computer.`);
+          }
+          imagePaths.add(file);
+        }
+        saveImagePaths(imagePaths);
+      }
       const embedded: string[] = [];
       if (typeof data.openui === "string") {
         const textOnly: string = data.openui.replace(embeddedImagePattern, (uri) => {
@@ -122,7 +141,7 @@ export default function contribute(server: PluginServerContext) {
         if (textOnly.length > maxOpenUiChars) throw new Error(`OpenUI text exceeds the limit of ${maxOpenUiChars} characters.`);
       }
       if (embedded.reduce((total, uri) => total + uri.length, 0) > maxEmbeddedImagesBytes) {
-        throw new Error("Embedded images exceed the 900 KiB limit: use smaller photos.");
+        throw new Error("Embedded images exceed the 2.25 MiB limit: use fewer or smaller photos.");
       }
       const checked = generativeUiSchema.safeParse(data);
       if (!checked.success) throw new Error(checked.error.issues[0]?.message ?? "Invalid interface data.");

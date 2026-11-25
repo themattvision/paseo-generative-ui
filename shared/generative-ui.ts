@@ -6,7 +6,8 @@ export const maxGenerativeUiDataBytes = 64 * 1024;
 // Immagini locali incorporate come data URI (16 novembre 2026: il telefono non legge i file del Mac, un `file://`
 // mostrava solo il segnaposto). I limiti di testo (20000 caratteri, 64 KiB) valgono SENZA i data URI; le immagini
 // hanno un tetto a parte.
-export const maxEmbeddedImagesBytes = 900 * 1024;
+// 25 novembre 2026: da 900 KiB a 2,25 MiB per far stare un carosello da 13 slide (InstagramPost).
+export const maxEmbeddedImagesBytes = 2304 * 1024;
 export const maxGenerativeUiBodyBytes = maxGenerativeUiDataBytes + maxEmbeddedImagesBytes + 64 * 1024;
 export const embeddedImagePattern = /data:image\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]+/gi;
 
