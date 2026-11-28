@@ -14,6 +14,7 @@ import { lucideName, mediaRenderers } from "./media.js";
 import { Icon as PaseoIcon, useToast } from "@getpaseo/plugin/client/ui";
 import { openAgentChat } from "../agent-nav.js";
 import { useFinaleGlass } from "../finale-glass.js";
+import { LinkedText, Prose } from "./rich-text.js";
 
 export { OpenUiContext };
 
@@ -60,13 +61,17 @@ const Title: Renderer = ({ props }) => {
 const Text_: Renderer = ({ props, renderNode }) => {
   const context = useUi();
   const size = props.size === "xs" ? 12 : props.size === "sm" ? 14 : props.size === "lg" ? 18 : 16;
-  const content = typeof props.text === "string" ? props.text : renderNode(props.text);
+  // Paragrafo di sola stringa: Markdown dell'app (selezione parziale e link come nel testo normale della chat).
+  if (typeof props.text === "string") {
+    return <Prose text={props.text} size={size} italic={props.italic} lineThrough={props.lineThrough} maxLines={props.maxLines} weight={props.weight} color={context.theme.colors.foreground} />;
+  }
+  const content = renderNode(props.text);
   return <Text selectable numberOfLines={props.maxLines} style={{ color: context.theme.colors.foreground, fontSize: size, lineHeight: Math.round(size * 1.45), fontWeight: props.weight === "semibold" ? "600" : props.weight === "medium" ? "500" : "400", fontStyle: props.italic ? "italic" : "normal", textDecorationLine: props.lineThrough ? "line-through" : "none" }}>{content}</Text>;
 };
 
 const Caption: Renderer = ({ props }) => {
   const context = useUi();
-  return <Text selectable style={{ color: context.theme.colors.foregroundMuted, fontSize: 12, lineHeight: 17 }}>{props.text}</Text>;
+  return <Text selectable style={{ color: context.theme.colors.foregroundMuted, fontSize: 12, lineHeight: 17 }}><LinkedText>{String(props.text ?? "")}</LinkedText></Text>;
 };
 
 const badgeTone: Record<string, string> = {
@@ -189,7 +194,7 @@ const Table: Renderer = ({ props }) => {
             <Text selectable style={{ color: context.theme.colors.foreground, fontSize: 16, lineHeight: 23, fontWeight: "600" }}>{cell(row[0])}</Text>
             {columns.slice(1).map((column, offset) => (
               <Text key={offset} selectable style={{ color: context.theme.colors.foregroundMuted, fontSize: 14, lineHeight: 20 }}>
-                {column}: <Text style={{ color: context.theme.colors.foreground }}>{cell(row[offset + 1])}</Text>
+                {column}: <Text style={{ color: context.theme.colors.foreground }}><LinkedText>{cell(row[offset + 1])}</LinkedText></Text>
               </Text>
             ))}
           </View>
@@ -207,7 +212,7 @@ const Table: Renderer = ({ props }) => {
       {rows.map((row, rowIndex) => (
         <View key={rowIndex} style={{ flexDirection: "row", borderTopWidth: 1, borderColor: context.theme.colors.border }}>
           {columns.map((_, cellIndex) => (
-            <Text key={cellIndex} selectable style={{ flex: 1, paddingVertical: space[12], paddingRight: space[8], color: context.theme.colors.foreground, fontSize: 14 }}>{cell(row[cellIndex])}</Text>
+            <Text key={cellIndex} selectable style={{ flex: 1, paddingVertical: space[12], paddingRight: space[8], color: context.theme.colors.foreground, fontSize: 14 }}><LinkedText>{cell(row[cellIndex])}</LinkedText></Text>
           ))}
         </View>
       ))}
